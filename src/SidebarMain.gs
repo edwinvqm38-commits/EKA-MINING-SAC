@@ -2,54 +2,388 @@ const SIDEBAR_TITLE = 'Gestión de Invitaciones';
 const SHEET_NAME = 'Invitaciones';
 const HEADER_ROW = 1;
 
-const COLUMN_MAP = {
-  invitation_id: 'ID Invitación',
-  cotizacion: 'Cotización',
-  descripcion: 'Descripción',
-  tipo_servicio: 'Tipo de Servicio',
-  estado_cotizacion: 'Estado de Cotización',
-  fecha_registro: 'Fecha de Registro',
-  cliente: 'Cliente',
-  zona_trabajo: 'Zona de Trabajo',
-  solicitante: 'Solicitante',
-  correo_solicitante: 'Correo del Solicitante',
-  telefono_solicitante: 'Teléfono del Solicitante',
-  responsable_tecnico: 'Responsable Técnico',
-  correo_responsable_tecnico: 'Correo del Resp. Téc.',
-  telefono_responsable_tecnico: 'Teléfono del Resp. Téc.',
-  responsable_economico: 'Responsable Económico',
-  correo_responsable_economico: 'Correo del Resp. Eco.',
-  telefono_responsable_economico: 'Teléfono del Resp. Eco.',
-  fecha_invitacion: 'Fecha de Invitación',
-  fecha_confirmacion: 'Fecha de Confirmación',
-  fecha_visita_tecnica: 'Fecha de Visita Téc.',
-  fecha_consultas: 'Fecha de Consultas',
-  fecha_abs_consultas: 'Fecha de Abs. Consultas',
-  fecha_presentacion: 'Fecha de Presentación',
-  monto_ofertado: 'Monto ofertado',
-  moneda: 'Moneda',
-  estado_propuesta: 'Estado de Propuesta',
-  orden_de_compra: 'Orden de Compra',
-  fecha_orden_compra: 'Fecha de la Orden de Compra',
-  link_carpeta_drive: 'Link Carpeta Drive',
-  link_archivo_enviado: 'Link Archivo Enviado',
-  fecha_envio_propuesta: 'Fecha de Envío de Propuesta',
-  hora_envio_propuesta: 'Hora de Envío de Propuesta',
-  dias_a_vencimiento: 'Días a Vencimiento',
-  riesgo_d3: 'Riesgo D-3',
-  riesgo_d1: 'Riesgo D-1',
-  enviado_a_tiempo: 'Enviado a Tiempo',
-  tiempo_respuesta_dias_hab: 'Tiempo de Respuesta (días hábiles)',
-  requiere_visita: 'Requiere Visita Técnica',
-  visita_ejecutada: 'Visita Ejecutada',
-  semana_iso: 'Semana ISO',
-  mes_anio: 'Mes-Año',
-  moneda_normalizada_usd: 'Moneda Normalizada (USD)',
-  tipo_cambio: 'Tipo de Cambio',
-  monto_ofertado_usd: 'Monto Ofertado (USD)',
-  estado_pipeline: 'Estado Pipeline',
-  notas_kpi: 'Notas KPI'
-};
+const FIELD_SECTIONS = [
+  {
+    id: 'general',
+    title: 'Datos generales',
+    description: 'Información básica del proceso de cotización.',
+    fields: [
+      {
+        alias: 'invitation_id',
+        header: 'ID Invitación',
+        label: 'ID Invitación',
+        valueType: 'text',
+        width: 6,
+        placeholder: 'INV-0001',
+        required: true,
+      },
+      {
+        alias: 'cotizacion',
+        header: 'Cotización',
+        label: 'Cotización',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'descripcion',
+        header: 'Descripción',
+        label: 'Descripción',
+        valueType: 'textarea',
+        width: 12,
+        rows: 3,
+      },
+      {
+        alias: 'tipo_servicio',
+        header: 'Tipo de Servicio',
+        label: 'Tipo de Servicio',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'estado_cotizacion',
+        header: 'Estado de Cotización',
+        label: 'Estado de Cotización',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'estado_propuesta',
+        header: 'Estado de Propuesta',
+        label: 'Estado de Propuesta',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'estado_pipeline',
+        header: 'Estado Pipeline',
+        label: 'Estado Pipeline',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'fecha_registro',
+        header: 'Fecha de Registro',
+        label: 'Fecha de Registro',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'cliente',
+        header: 'Cliente',
+        label: 'Cliente',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'zona_trabajo',
+        header: 'Zona de Trabajo',
+        label: 'Zona de Trabajo',
+        valueType: 'text',
+        width: 6,
+      },
+    ],
+  },
+  {
+    id: 'contactos',
+    title: 'Contactos clave',
+    description: 'Personas involucradas en la invitación.',
+    fields: [
+      {
+        alias: 'solicitante',
+        header: 'Solicitante',
+        label: 'Solicitante',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'correo_solicitante',
+        header: 'Correo del Solicitante',
+        label: 'Correo del Solicitante',
+        valueType: 'text',
+        width: 6,
+        placeholder: 'correo@empresa.com',
+      },
+      {
+        alias: 'telefono_solicitante',
+        header: 'Teléfono del Solicitante',
+        label: 'Teléfono del Solicitante',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'responsable_tecnico',
+        header: 'Responsable Técnico',
+        label: 'Responsable Técnico',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'correo_responsable_tecnico',
+        header: 'Correo del Resp. Téc.',
+        label: 'Correo del Resp. Téc.',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'telefono_responsable_tecnico',
+        header: 'Teléfono del Resp. Téc.',
+        label: 'Teléfono del Resp. Téc.',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'responsable_economico',
+        header: 'Responsable Económico',
+        label: 'Responsable Económico',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'correo_responsable_economico',
+        header: 'Correo del Resp. Eco.',
+        label: 'Correo del Resp. Eco.',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'telefono_responsable_economico',
+        header: 'Teléfono del Resp. Eco.',
+        label: 'Teléfono del Resp. Eco.',
+        valueType: 'text',
+        width: 6,
+      },
+    ],
+  },
+  {
+    id: 'cronograma',
+    title: 'Cronograma y entregables',
+    description: 'Fechas clave, entregables y documentación de soporte.',
+    fields: [
+      {
+        alias: 'fecha_invitacion',
+        header: 'Fecha de Invitación',
+        label: 'Fecha de Invitación',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_confirmacion',
+        header: 'Fecha de Confirmación',
+        label: 'Fecha de Confirmación',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_visita_tecnica',
+        header: 'Fecha de Visita Téc.',
+        label: 'Fecha de Visita Téc.',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_consultas',
+        header: 'Fecha de Consultas',
+        label: 'Fecha de Consultas',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_abs_consultas',
+        header: 'Fecha de Abs. Consultas',
+        label: 'Fecha de Abs. Consultas',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_presentacion',
+        header: 'Fecha de Presentación',
+        label: 'Fecha de Presentación',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'fecha_envio_propuesta',
+        header: 'Fecha de Envío de Propuesta',
+        label: 'Fecha de Envío de Propuesta',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'hora_envio_propuesta',
+        header: 'Hora de Envío de Propuesta',
+        label: 'Hora de Envío de Propuesta',
+        valueType: 'time',
+        width: 6,
+      },
+      {
+        alias: 'orden_de_compra',
+        header: 'Orden de Compra',
+        label: 'Orden de Compra',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'fecha_orden_compra',
+        header: 'Fecha de la Orden de Compra',
+        label: 'Fecha de la Orden de Compra',
+        valueType: 'date',
+        width: 6,
+      },
+      {
+        alias: 'link_carpeta_drive',
+        header: 'Link Carpeta Drive',
+        label: 'Link Carpeta Drive',
+        valueType: 'link',
+        width: 12,
+        helper: 'Guarda la carpeta como hipervínculo para acceder rápidamente.',
+      },
+      {
+        alias: 'link_archivo_enviado',
+        header: 'Link Archivo Enviado',
+        label: 'Link Archivo Enviado',
+        valueType: 'link',
+        width: 12,
+        helper: 'Adjunta el enlace del archivo enviado al cliente.',
+      },
+    ],
+  },
+  {
+    id: 'kpi',
+    title: 'KPIs y métricas',
+    description: 'Seguimiento de indicadores clave y normalizaciones.',
+    fields: [
+      {
+        alias: 'monto_ofertado',
+        header: 'Monto ofertado',
+        label: 'Monto ofertado',
+        valueType: 'number',
+        width: 6,
+      },
+      {
+        alias: 'moneda',
+        header: 'Moneda',
+        label: 'Moneda',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'moneda_normalizada_usd',
+        header: 'Moneda Normalizada (USD)',
+        label: 'Moneda Normalizada (USD)',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'tipo_cambio',
+        header: 'Tipo de Cambio',
+        label: 'Tipo de Cambio',
+        valueType: 'number',
+        width: 6,
+      },
+      {
+        alias: 'monto_ofertado_usd',
+        header: 'Monto Ofertado (USD)',
+        label: 'Monto Ofertado (USD)',
+        valueType: 'number',
+        width: 6,
+      },
+      {
+        alias: 'dias_a_vencimiento',
+        header: 'Días a Vencimiento',
+        label: 'Días a Vencimiento',
+        valueType: 'number',
+        width: 6,
+      },
+      {
+        alias: 'riesgo_d3',
+        header: 'Riesgo D-3',
+        label: 'Riesgo D-3',
+        valueType: 'boolean',
+        width: 6,
+      },
+      {
+        alias: 'riesgo_d1',
+        header: 'Riesgo D-1',
+        label: 'Riesgo D-1',
+        valueType: 'boolean',
+        width: 6,
+      },
+      {
+        alias: 'enviado_a_tiempo',
+        header: 'Enviado a Tiempo',
+        label: 'Enviado a Tiempo',
+        valueType: 'boolean',
+        width: 6,
+      },
+      {
+        alias: 'tiempo_respuesta_dias_hab',
+        header: 'Tiempo de Respuesta (días hábiles)',
+        label: 'Tiempo de Respuesta (días hábiles)',
+        valueType: 'number',
+        width: 6,
+      },
+      {
+        alias: 'requiere_visita',
+        header: 'Requiere Visita Técnica',
+        label: 'Requiere Visita Técnica',
+        valueType: 'boolean',
+        width: 6,
+      },
+      {
+        alias: 'visita_ejecutada',
+        header: 'Visita Ejecutada',
+        label: 'Visita Ejecutada',
+        valueType: 'boolean',
+        width: 6,
+      },
+      {
+        alias: 'semana_iso',
+        header: 'Semana ISO',
+        label: 'Semana ISO',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'mes_anio',
+        header: 'Mes-Año',
+        label: 'Mes-Año',
+        valueType: 'text',
+        width: 6,
+      },
+      {
+        alias: 'notas_kpi',
+        header: 'Notas KPI',
+        label: 'Notas KPI',
+        valueType: 'textarea',
+        width: 12,
+        rows: 3,
+      },
+    ],
+  },
+];
+
+const COLUMN_MAP = (function () {
+  const map = {};
+  FIELD_SECTIONS.forEach(function (section) {
+    section.fields.forEach(function (field) {
+      map[field.alias] = field.header;
+    });
+  });
+  return map;
+})();
+
+const FIELD_LOOKUP = (function () {
+  const lookup = {};
+  FIELD_SECTIONS.forEach(function (section) {
+    section.fields.forEach(function (field) {
+      lookup[field.alias] = field;
+    });
+  });
+  return lookup;
+})();
+
+const BOOLEAN_TRUE_VALUES = ['true', 'sí', 'si', 'yes', 'y', '1', 'verdadero'];
+const BOOLEAN_FALSE_VALUES = ['false', 'no', '0', 'n', 'falso'];
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -62,10 +396,11 @@ function onOpen() {
 function showSidebar() {
   const template = HtmlService.createTemplateFromFile('Sidebar');
   template.sheetName = getInvitationSheet().getName();
+  template.fieldSectionsJson = JSON.stringify(FIELD_SECTIONS);
   const htmlOutput = template
     .evaluate()
     .setTitle(SIDEBAR_TITLE)
-    .setWidth(360);
+    .setWidth(420);
   SpreadsheetApp.getUi().showSidebar(htmlOutput);
 }
 
@@ -106,16 +441,31 @@ function getRowData(rowNumber) {
   }
   const sheet = getInvitationSheet();
   const lastColumn = sheet.getLastColumn();
-  const values = sheet.getRange(rowNumber, 1, 1, lastColumn).getValues()[0];
-  const result = { rowNumber };
+  if (lastColumn === 0) {
+    return { rowNumber: rowNumber };
+  }
   const headers = getHeaders();
+  const range = sheet.getRange(rowNumber, 1, 1, lastColumn);
+  const values = range.getValues()[0];
+  const displayValues = range.getDisplayValues()[0];
+  const formulas = range.getFormulas()[0];
+  const richTextValues = range.getRichTextValues()[0];
+  const result = { rowNumber: rowNumber };
+
   Object.keys(COLUMN_MAP).forEach(function (alias) {
     const headerName = COLUMN_MAP[alias];
     const columnIndex = headers.indexOf(headerName);
-    if (columnIndex !== -1) {
-      result[alias] = values[columnIndex];
+    if (columnIndex === -1) {
+      return;
     }
+    const def = FIELD_LOOKUP[alias];
+    const rawValue = values[columnIndex];
+    const displayValue = displayValues[columnIndex];
+    const formula = formulas[columnIndex];
+    const richText = richTextValues[columnIndex];
+    result[alias] = formatCellForClient(def, rawValue, displayValue, formula, richText);
   });
+
   return result;
 }
 
@@ -168,32 +518,270 @@ function updateInvitationRow(rowNumber, updates) {
 }
 
 function normalizeValueForSheet(alias, value) {
-  if (value === undefined || value === null) {
+  const definition = FIELD_LOOKUP[alias];
+  if (!definition) {
+    return value === undefined || value === null ? '' : value;
+  }
+  if (value === undefined || value === null || value === '') {
     return '';
   }
-  switch (alias) {
-    case 'dias_a_vencimiento':
-    case 'tiempo_respuesta_dias_hab':
-    case 'tipo_cambio':
-    case 'monto_ofertado':
-    case 'monto_ofertado_usd':
-      if (value === '') {
-        return '';
-      }
-      var numericValue = Number(value);
-      if (Number.isFinite(numericValue)) {
-        return numericValue;
-      }
-      return value;
-    case 'riesgo_d3':
-    case 'riesgo_d1':
-    case 'enviado_a_tiempo':
-    case 'requiere_visita':
-    case 'visita_ejecutada':
-      return value === true ? true : value === false ? false : '';
+
+  switch (definition.valueType) {
+    case 'date':
+      return coerceDateValue(value) || '';
+    case 'time':
+      return typeof value === 'string' ? value : '';
+    case 'number':
+      return coerceNumberValue(value);
+    case 'boolean':
+      return coerceBooleanValue(value);
+    case 'link':
+      return coerceLinkValue(value);
+    case 'textarea':
+    case 'text':
     default:
       return value;
   }
+}
+
+function coerceDateValue(value) {
+  if (!value) {
+    return null;
+  }
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  const parsed = new Date(value);
+  if (isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+}
+
+function coerceNumberValue(value) {
+  if (value === '' || value === null || value === undefined) {
+    return '';
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : '';
+}
+
+function coerceBooleanValue(value) {
+  if (value === true || value === false) {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (BOOLEAN_TRUE_VALUES.indexOf(normalized) !== -1) {
+      return true;
+    }
+    if (BOOLEAN_FALSE_VALUES.indexOf(normalized) !== -1) {
+      return false;
+    }
+  }
+  return '';
+}
+
+function coerceLinkValue(value) {
+  if (typeof value === 'object' && value !== null) {
+    const url = value.url ? String(value.url).trim() : '';
+    const text = value.text ? String(value.text).trim() : '';
+    if (!url && !text) {
+      return '';
+    }
+    if (!url) {
+      return text;
+    }
+    const label = text || url;
+    return buildHyperlinkFormula(url, label);
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return '';
+}
+
+function formatCellForClient(definition, rawValue, displayValue, formula, richText) {
+  if (!definition) {
+    return rawValue;
+  }
+
+  switch (definition.valueType) {
+    case 'date':
+      return formatDateValue(rawValue, displayValue);
+    case 'time':
+      return formatTimeValue(rawValue, displayValue);
+    case 'number':
+      return formatNumberValue(rawValue, displayValue);
+    case 'boolean':
+      return formatBooleanValue(rawValue);
+    case 'link':
+      return extractHyperlinkDescriptor(rawValue, displayValue, formula, richText);
+    case 'textarea':
+    case 'text':
+    default:
+      return rawValue === '' || rawValue === null || rawValue === undefined
+        ? ''
+        : String(rawValue);
+  }
+}
+
+function formatDateValue(rawValue, displayValue) {
+  const value = rawValue || displayValue;
+  if (!value) {
+    return '';
+  }
+  if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+    return Utilities.formatDate(rawValue, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  const parsed = new Date(value);
+  if (isNaN(parsed.getTime())) {
+    return '';
+  }
+  return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function formatTimeValue(rawValue, displayValue) {
+  if (!rawValue && !displayValue) {
+    return '';
+  }
+  if (Object.prototype.toString.call(rawValue) === '[object Date]') {
+    return Utilities.formatDate(rawValue, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  if (typeof rawValue === 'string' && rawValue.match(/^\d{1,2}:\d{2}$/)) {
+    return rawValue;
+  }
+  if (typeof displayValue === 'string' && displayValue.match(/^\d{1,2}:\d{2}$/)) {
+    return displayValue;
+  }
+  return '';
+}
+
+function formatNumberValue(rawValue, displayValue) {
+  if (rawValue === '' || rawValue === null || rawValue === undefined) {
+    return '';
+  }
+  if (typeof rawValue === 'number') {
+    return String(rawValue);
+  }
+  if (typeof rawValue === 'string' && rawValue.trim() !== '') {
+    return rawValue;
+  }
+  if (typeof displayValue === 'string' && displayValue.trim() !== '') {
+    return displayValue;
+  }
+  return '';
+}
+
+function formatBooleanValue(rawValue) {
+  if (rawValue === true || rawValue === false) {
+    return rawValue;
+  }
+  if (rawValue === '' || rawValue === null || rawValue === undefined) {
+    return null;
+  }
+  if (typeof rawValue === 'number') {
+    return rawValue !== 0;
+  }
+  if (typeof rawValue === 'string') {
+    const normalized = rawValue.trim().toLowerCase();
+    if (BOOLEAN_TRUE_VALUES.indexOf(normalized) !== -1) {
+      return true;
+    }
+    if (BOOLEAN_FALSE_VALUES.indexOf(normalized) !== -1) {
+      return false;
+    }
+  }
+  return null;
+}
+
+function extractHyperlinkDescriptor(rawValue, displayValue, formula, richText) {
+  let text = '';
+  let url = '';
+
+  if (formula) {
+    const parsed = parseHyperlinkFormula(formula);
+    if (parsed) {
+      url = parsed.url || '';
+      text = parsed.text || parsed.url || displayValue || rawValue || '';
+      return {
+        url: url,
+        text: text,
+        formula: formula,
+      };
+    }
+  }
+
+  const richUrl = extractUrlFromRichText(richText);
+  if (richUrl) {
+    url = richUrl;
+    text = displayValue || rawValue || richUrl;
+    return {
+      url: url,
+      text: text || richUrl,
+      formula: buildHyperlinkFormula(url, text || richUrl),
+    };
+  }
+
+  const candidate = displayValue || rawValue;
+  if (candidate && typeof candidate === 'string' && candidate.trim().startsWith('http')) {
+    url = candidate.trim();
+    text = candidate.trim();
+  } else {
+    text = candidate ? String(candidate) : '';
+  }
+
+  return {
+    url: url,
+    text: text,
+    formula: url ? buildHyperlinkFormula(url, text || url) : formula || '',
+  };
+}
+
+function extractUrlFromRichText(richText) {
+  if (!richText) {
+    return '';
+  }
+  try {
+    if (typeof richText.getLinkUrl === 'function') {
+      const direct = richText.getLinkUrl();
+      if (direct) {
+        return direct;
+      }
+    }
+    if (typeof richText.getRuns === 'function') {
+      const runs = richText.getRuns();
+      if (runs && runs.length) {
+        for (var i = 0; i < runs.length; i++) {
+          const runUrl = runs[i].getLinkUrl();
+          if (runUrl) {
+            return runUrl;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Ignorar errores de compatibilidad en RichTextValue.
+  }
+  return '';
+}
+
+function syncInvitationRow(rowNumber) {
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  const payload = buildInvitationPayload(rowNumber);
+  if (!payload.invitation_id) {
+    throw new Error('La fila seleccionada no tiene "ID Invitación".');
+  }
+  const response = supabaseUpsert([payload]);
+  return {
+    rowNumber: rowNumber,
+    syncedRows: response.length,
+  };
 }
 
 function syncActiveInvitation() {
@@ -201,22 +789,89 @@ function syncActiveInvitation() {
   if (!active.rowNumber) {
     throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
   }
-  const payload = buildInvitationPayload(active.rowNumber);
-  if (!payload.invitation_id) {
-    throw new Error('La fila seleccionada no tiene "ID Invitación".');
-  }
-  const response = supabaseUpsert([payload]);
+  return syncInvitationRow(active.rowNumber);
+}
+
+function getSidebarContext() {
   return {
-    rowNumber: active.rowNumber,
-    syncedRows: response.length,
+    fieldSections: FIELD_SECTIONS,
+    activeInvitation: getActiveInvitation(),
+    sheetName: SHEET_NAME,
+  };
+}
+
+function saveInvitation(request) {
+  const rowNumber = request && request.rowNumber;
+  const updates = (request && request.updates) || {};
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  const updated = updateInvitationRow(rowNumber, updates);
+  return {
+    rowNumber: rowNumber,
+    data: updated,
+  };
+}
+
+function acceptInvitation(request) {
+  const saved = saveInvitation(request);
+  const syncResult = syncInvitationRow(saved.rowNumber);
+  return {
+    rowNumber: saved.rowNumber,
+    data: getRowData(saved.rowNumber),
+    syncedRows: syncResult.syncedRows,
+  };
+}
+
+function deleteInvitation(request) {
+  const rowNumber = request && request.rowNumber;
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida para eliminar.');
+  }
+  const sheet = getInvitationSheet();
+  const lastRow = sheet.getLastRow();
+  if (rowNumber > lastRow) {
+    throw new Error('La fila ' + rowNumber + ' no existe en la hoja.');
+  }
+  sheet.deleteRow(rowNumber);
+  return {
+    deletedRow: rowNumber,
   };
 }
 
 function listColumnMetadata() {
-  return Object.keys(COLUMN_MAP).map(function (alias) {
-    return {
-      alias: alias,
-      header: COLUMN_MAP[alias],
-    };
-  });
+  return FIELD_SECTIONS.reduce(function (acc, section) {
+    section.fields.forEach(function (field) {
+      acc.push({
+        alias: field.alias,
+        header: field.header,
+        section: section.id,
+      });
+    });
+    return acc;
+  }, []);
+}
+
+function buildHyperlinkFormula(url, text) {
+  const safeUrl = escapeFormulaValue(url);
+  const safeText = escapeFormulaValue(text);
+  return '=HYPERLINK("' + safeUrl + '","' + safeText + '")';
+}
+
+function parseHyperlinkFormula(formula) {
+  if (!formula || typeof formula !== 'string') {
+    return null;
+  }
+  const trimmed = formula.trim();
+  const match = /^=HYPERLINK\(\s*"((?:[^"]|"")*)"\s*(?:,\s*"((?:[^"]|"")*)"\s*)?\)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const url = match[1] ? match[1].replace(/""/g, '"') : '';
+  const text = match[2] ? match[2].replace(/""/g, '"') : '';
+  return { url: url, text: text };
+}
+
+function escapeFormulaValue(value) {
+  return String(value || '').replace(/"/g, '""');
 }

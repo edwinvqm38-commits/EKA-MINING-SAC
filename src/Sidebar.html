@@ -2,561 +2,860 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gestión de Invitaciones</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
     <style>
       :root {
-        color-scheme: light only;
-        --accent: #2563eb;
-        --accent-dark: #1d4ed8;
-        --bg: #f5f7fa;
-        --card-bg: #ffffff;
-        --text: #1f2933;
-        --muted: #64748b;
-        --border: #dce3f0;
-        --success: #0f5132;
-        --error: #b91c1c;
+        color-scheme: light;
       }
 
       body {
-        margin: 0;
-        padding: 16px;
-        background: var(--bg);
+        background: #f6f7fb;
         font-family: 'Segoe UI', Roboto, sans-serif;
-        color: var(--text);
       }
 
-      h1 {
-        margin: 0 0 12px;
-        font-size: 20px;
-        font-weight: 700;
+      .sidebar-app {
+        position: relative;
+        min-height: 100vh;
       }
 
-      h2 {
-        font-size: 16px;
-        margin: 0 0 12px;
-      }
-
-      .section {
-        background: var(--card-bg);
-        border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-        border: 1px solid rgba(15, 23, 42, 0.04);
-      }
-
-      .header-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      button {
+      .card {
+        border-radius: 14px;
         border: none;
-        border-radius: 8px;
-        padding: 8px 14px;
+      }
+
+      .card.shadow-sm {
+        box-shadow: 0 12px 24px -18px rgba(31, 41, 55, 0.45);
+      }
+
+      .nav-pills .nav-link {
         font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        background: var(--accent);
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #3949ab;
+        border: 1px solid transparent;
+        transition: all 0.15s ease-in-out;
+        padding-block: 0.55rem;
+      }
+
+      .nav-pills .nav-link.active {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
         color: #ffffff;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: background 0.15s ease;
+        box-shadow: 0 10px 18px -12px rgba(99, 102, 241, 0.85);
       }
 
-      button:hover:not(:disabled) {
-        background: var(--accent-dark);
+      .tab-pane {
+        min-height: 220px;
       }
 
-      button.secondary {
-        background: #475569;
-      }
-
-      button.ghost {
-        background: transparent;
-        color: var(--muted);
-        border: 1px solid var(--border);
-      }
-
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      dl {
-        margin: 0;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px 12px;
-        font-size: 13px;
-      }
-
-      dt {
+      label.form-label {
         font-weight: 600;
-        color: var(--muted);
+        color: #1f2937;
       }
 
-      dd {
-        margin: 0;
-        word-break: break-word;
+      .form-text {
+        font-size: 0.75rem;
       }
 
-      .form-grid {
-        display: grid;
-        gap: 12px;
+      .input-group-text {
+        font-weight: 600;
       }
 
-      .field {
+      .status-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.2rem 0.65rem;
+      }
+
+      .badge-soft-primary {
+        background: rgba(59, 130, 246, 0.1);
+        color: #1d4ed8;
+      }
+
+      .badge-soft-success {
+        background: rgba(34, 197, 94, 0.12);
+        color: #15803d;
+      }
+
+      .badge-soft-warning {
+        background: rgba(250, 204, 21, 0.18);
+        color: #b45309;
+      }
+
+      .badge-soft-secondary {
+        background: rgba(99, 102, 241, 0.12);
+        color: #4338ca;
+      }
+
+      .loading-overlay {
+        position: absolute;
+        inset: 0;
         display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-size: 13px;
-      }
-
-      .field label {
-        font-weight: 600;
-      }
-
-      .field input,
-      .field textarea,
-      .field select {
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        padding: 8px 10px;
-        font-family: inherit;
-        font-size: 13px;
-        background: #f8fafc;
-      }
-
-      .field textarea {
-        min-height: 70px;
-        resize: vertical;
-      }
-
-      .field.checkbox {
-        flex-direction: row;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        background: rgba(246, 247, 251, 0.85);
+        z-index: 20;
       }
 
-      .field.checkbox label {
-        font-weight: 500;
-      }
-
-      .status {
-        margin: 8px 0 0;
-        font-size: 12px;
-        color: var(--muted);
-      }
-
-      .status.success {
-        color: var(--success);
-      }
-
-      .status.error {
-        color: var(--error);
-      }
-
-      .empty-state {
+      .loading-overlay .overlay-box {
+        background: #ffffff;
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.45);
         text-align: center;
-        color: var(--muted);
-        font-size: 14px;
       }
 
-      .chips {
+      .loading-overlay .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+
+      .floating-buttons {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 8px;
+        gap: 0.5rem;
       }
 
-      .chip {
-        background: rgba(37, 99, 235, 0.12);
-        color: var(--accent-dark);
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-size: 11px;
-        font-weight: 600;
+      .floating-buttons .btn {
+        flex: 1 1 auto;
+        min-width: 48%;
+      }
+
+      @media (max-width: 480px) {
+        .floating-buttons .btn {
+          min-width: 100%;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>Gestión de Invitaciones</h1>
-    <div class="header-actions">
-      <button id="refresh" type="button">Actualizar fila activa</button>
-      <button id="sync" type="button">Sincronizar con Supabase</button>
+    <div class="sidebar-app container-fluid py-3">
+      <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+        <div>
+          <h1 class="h5 fw-semibold mb-1">Gestión de Invitaciones</h1>
+          <div class="text-muted small">Hoja configurada: <span class="fw-semibold" id="configuredSheet"><?!= sheetName ?></span></div>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" id="reloadButton" type="button">Recargar</button>
+      </div>
+
+      <div id="alertContainer"></div>
+
+      <div id="summaryCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+              <div class="text-uppercase text-muted small">Fila activa</div>
+              <div class="fw-semibold" id="rowSummaryTitle"></div>
+              <div class="text-muted small" id="rowSummarySubtitle"></div>
+            </div>
+            <span class="badge badge-soft-secondary" id="rowSummaryBadge"></span>
+          </div>
+          <p class="small text-body-secondary mt-2 mb-0" id="rowSummaryDescription"></p>
+          <div class="d-flex flex-wrap gap-1 mt-2" id="rowSummaryStatuses"></div>
+        </div>
+      </div>
+
+      <div id="formCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <ul class="nav nav-pills nav-fill gap-2 mb-3" id="sectionTabs" role="tablist"></ul>
+          <div class="tab-content" id="sectionTabContent"></div>
+        </div>
+      </div>
+
+      <div id="actionsCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <div class="floating-buttons mb-2">
+            <button id="acceptButton" type="button" class="btn btn-primary">
+              Aceptar y sincronizar
+            </button>
+            <button id="updateButton" type="button" class="btn btn-success">
+              Actualizar
+            </button>
+            <button id="cancelButton" type="button" class="btn btn-outline-secondary">
+              Cancelar
+            </button>
+            <button id="deleteButton" type="button" class="btn btn-outline-danger">
+              Eliminar fila
+            </button>
+          </div>
+          <div id="statusMessage" class="form-text mt-2"></div>
+        </div>
+      </div>
+
+      <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="overlay-box">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div id="loadingMessage" class="small mt-2 fw-semibold text-primary">
+            Procesando…
+          </div>
+        </div>
+      </div>
     </div>
-    <p id="status" class="status"></p>
 
-    <div id="content"></div>
-
-    <template id="template-content">
-      <div class="section">
-        <h2>Resumen de la invitación</h2>
-        <div class="chips">
-          <span class="chip" id="chip-row"></span>
-          <span class="chip" id="chip-sheet"></span>
-        </div>
-        <dl>
-          <dt>Cotización</dt>
-          <dd id="summary-cotizacion"></dd>
-          <dt>Cliente</dt>
-          <dd id="summary-cliente"></dd>
-          <dt>Estado de Cotización</dt>
-          <dd id="summary-estado-cotizacion"></dd>
-          <dt>Estado Propuesta</dt>
-          <dd id="summary-estado-propuesta"></dd>
-          <dt>Estado Pipeline</dt>
-          <dd id="summary-estado-pipeline"></dd>
-          <dt>Monto ofertado</dt>
-          <dd id="summary-monto"></dd>
-          <dt>Moneda</dt>
-          <dd id="summary-moneda"></dd>
-          <dt>Fecha de Invitación</dt>
-          <dd id="summary-fecha-invitacion"></dd>
-        </dl>
-      </div>
-
-      <form class="section" id="form-invitation">
-        <h2>Actualizar campos clave</h2>
-        <div class="form-grid">
-          <div class="field">
-            <label for="estado_cotizacion">Estado de Cotización</label>
-            <input list="estado_cotizacion_sugerencias" id="estado_cotizacion" name="estado_cotizacion" />
-            <datalist id="estado_cotizacion_sugerencias">
-              <option value="Registrada"></option>
-              <option value="En evaluación"></option>
-              <option value="Cerrada"></option>
-              <option value="Suspendida"></option>
-            </datalist>
-          </div>
-          <div class="field">
-            <label for="estado_propuesta">Estado de Propuesta</label>
-            <input list="estado_propuesta_sugerencias" id="estado_propuesta" name="estado_propuesta" />
-            <datalist id="estado_propuesta_sugerencias">
-              <option value="Borrador"></option>
-              <option value="Enviada"></option>
-              <option value="Ganada"></option>
-              <option value="Perdida"></option>
-            </datalist>
-          </div>
-          <div class="field">
-            <label for="estado_pipeline">Estado Pipeline</label>
-            <input list="estado_pipeline_sugerencias" id="estado_pipeline" name="estado_pipeline" />
-            <datalist id="estado_pipeline_sugerencias">
-              <option value="Leads"></option>
-              <option value="Oportunidad"></option>
-              <option value="Propuesta"></option>
-              <option value="Negociación"></option>
-              <option value="Cierre"></option>
-            </datalist>
-          </div>
-          <div class="field">
-            <label for="fecha_envio_propuesta">Fecha envío propuesta</label>
-            <input type="date" id="fecha_envio_propuesta" name="fecha_envio_propuesta" />
-          </div>
-          <div class="field">
-            <label for="hora_envio_propuesta">Hora envío propuesta</label>
-            <input type="time" id="hora_envio_propuesta" name="hora_envio_propuesta" />
-          </div>
-          <div class="field">
-            <label for="dias_a_vencimiento">Días a vencimiento</label>
-            <input type="number" id="dias_a_vencimiento" name="dias_a_vencimiento" min="0" step="1" />
-          </div>
-          <div class="field">
-            <label for="tiempo_respuesta_dias_hab">Tiempo de respuesta (días hábiles)</label>
-            <input type="number" id="tiempo_respuesta_dias_hab" name="tiempo_respuesta_dias_hab" min="0" step="0.01" />
-          </div>
-          <div class="field">
-            <label for="moneda_normalizada_usd">Moneda normalizada (USD)</label>
-            <input type="text" id="moneda_normalizada_usd" name="moneda_normalizada_usd" />
-          </div>
-          <div class="field">
-            <label for="tipo_cambio">Tipo de cambio</label>
-            <input type="number" id="tipo_cambio" name="tipo_cambio" min="0" step="0.0001" />
-          </div>
-          <div class="field">
-            <label for="monto_ofertado_usd">Monto ofertado (USD)</label>
-            <input type="number" id="monto_ofertado_usd" name="monto_ofertado_usd" min="0" step="0.01" />
-          </div>
-          <div class="field">
-            <label for="link_carpeta_drive">Link carpeta Drive</label>
-            <input type="url" id="link_carpeta_drive" name="link_carpeta_drive" placeholder="https://" />
-          </div>
-          <div class="field">
-            <label for="link_archivo_enviado">Link archivo enviado</label>
-            <input type="url" id="link_archivo_enviado" name="link_archivo_enviado" placeholder="https://" />
-          </div>
-          <div class="field checkbox">
-            <input type="checkbox" id="riesgo_d3" name="riesgo_d3" />
-            <label for="riesgo_d3">Riesgo D-3</label>
-          </div>
-          <div class="field checkbox">
-            <input type="checkbox" id="riesgo_d1" name="riesgo_d1" />
-            <label for="riesgo_d1">Riesgo D-1</label>
-          </div>
-          <div class="field checkbox">
-            <input type="checkbox" id="enviado_a_tiempo" name="enviado_a_tiempo" />
-            <label for="enviado_a_tiempo">Enviado a tiempo</label>
-          </div>
-          <div class="field checkbox">
-            <input type="checkbox" id="requiere_visita" name="requiere_visita" />
-            <label for="requiere_visita">Requiere visita técnica</label>
-          </div>
-          <div class="field checkbox">
-            <input type="checkbox" id="visita_ejecutada" name="visita_ejecutada" />
-            <label for="visita_ejecutada">Visita ejecutada</label>
-          </div>
-          <div class="field">
-            <label for="notas_kpi">Notas KPI</label>
-            <textarea id="notas_kpi" name="notas_kpi" placeholder="Resumen y próximos pasos..."></textarea>
-          </div>
-        </div>
-        <div style="margin-top: 12px; display: flex; gap: 8px;">
-          <button type="submit">Guardar cambios</button>
-          <button type="button" class="ghost" id="reset">Restablecer</button>
-        </div>
-      </form>
-    </template>
-
-    <template id="template-empty">
-      <div class="section empty-state">
-        Selecciona una fila con datos en la hoja «Invitaciones» para ver y actualizar la información.
-      </div>
-    </template>
-
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
     <script>
-      const statusLabel = document.getElementById('status');
-      const content = document.getElementById('content');
-      const refreshBtn = document.getElementById('refresh');
-      const syncBtn = document.getElementById('sync');
-      let currentRowNumber = null;
-      let currentData = null;
+      const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
+      const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
+
+      const state = {
+        rowNumber: null,
+        values: {},
+        baseline: {},
+        loading: false,
+      };
+
+      const elements = {
+        alertContainer: document.getElementById('alertContainer'),
+        summaryCard: document.getElementById('summaryCard'),
+        summaryTitle: document.getElementById('rowSummaryTitle'),
+        summarySubtitle: document.getElementById('rowSummarySubtitle'),
+        summaryBadge: document.getElementById('rowSummaryBadge'),
+        summaryDescription: document.getElementById('rowSummaryDescription'),
+        summaryStatuses: document.getElementById('rowSummaryStatuses'),
+        formCard: document.getElementById('formCard'),
+        actionsCard: document.getElementById('actionsCard'),
+        tabs: document.getElementById('sectionTabs'),
+        tabContent: document.getElementById('sectionTabContent'),
+        reloadButton: document.getElementById('reloadButton'),
+        acceptButton: document.getElementById('acceptButton'),
+        updateButton: document.getElementById('updateButton'),
+        cancelButton: document.getElementById('cancelButton'),
+        deleteButton: document.getElementById('deleteButton'),
+        statusMessage: document.getElementById('statusMessage'),
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loadingMessage: document.getElementById('loadingMessage'),
+      };
+
+      const tabInstances = {};
 
       document.addEventListener('DOMContentLoaded', () => {
-        refreshBtn.addEventListener('click', refreshInvitation);
-        syncBtn.addEventListener('click', syncInvitation);
-        refreshInvitation();
+        document.title = 'Gestión de Invitaciones';
+        buildTabs();
+        attachEventHandlers();
+        loadContext();
       });
 
-      function refreshInvitation() {
-        setStatus('Cargando fila activa…');
-        setLoading(true);
-        google.script.run
-          .withSuccessHandler(handleInvitation)
-          .withFailureHandler(handleError)
-          .getActiveInvitation();
+      function buildTabs() {
+        elements.tabs.innerHTML = '';
+        elements.tabContent.innerHTML = '';
+        FIELD_SECTIONS.forEach((section, index) => {
+          const isActive = index === 0;
+          const tabId = `tab-${section.id}`;
+          const panelId = `panel-${section.id}`;
+
+          const navItem = document.createElement('li');
+          navItem.className = 'nav-item';
+          navItem.role = 'presentation';
+
+          const button = document.createElement('button');
+          button.className = `nav-link${isActive ? ' active' : ''}`;
+          button.id = tabId;
+          button.type = 'button';
+          button.setAttribute('data-bs-toggle', 'pill');
+          button.setAttribute('data-bs-target', `#${panelId}`);
+          button.setAttribute('role', 'tab');
+          button.setAttribute('aria-controls', panelId);
+          button.setAttribute('aria-selected', String(isActive));
+          button.textContent = section.title;
+
+          navItem.appendChild(button);
+          elements.tabs.appendChild(navItem);
+
+          const pane = document.createElement('div');
+          pane.className = `tab-pane fade${isActive ? ' show active' : ''}`;
+          pane.id = panelId;
+          pane.setAttribute('role', 'tabpanel');
+          pane.setAttribute('aria-labelledby', tabId);
+
+          if (section.description) {
+            const description = document.createElement('p');
+            description.className = 'small text-muted mb-3';
+            description.textContent = section.description;
+            pane.appendChild(description);
+          }
+
+          const row = document.createElement('div');
+          row.className = 'row g-3';
+          row.dataset.sectionId = section.id;
+
+          section.fields.forEach((field) => {
+            const fieldElement = createFieldElement(field);
+            row.appendChild(fieldElement);
+          });
+
+          pane.appendChild(row);
+          elements.tabContent.appendChild(pane);
+        });
       }
 
-      function handleInvitation(result) {
-        setLoading(false);
-        if (!result || !result.data) {
-          currentRowNumber = null;
-          currentData = null;
-          renderEmptyState(result && result.sheetName, result && result.expectedSheetName);
-          setStatus('Selecciona una fila válida en la hoja «' + (result && result.expectedSheetName ? result.expectedSheetName : 'Invitaciones') + '».', true);
+      function createFieldElement(field) {
+        const columnClass = field.width === 12 ? 'col-12' : 'col-12 col-sm-6';
+        const wrapper = document.createElement('div');
+        wrapper.className = columnClass;
+        wrapper.dataset.alias = field.alias;
+        wrapper.dataset.type = field.valueType;
+
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.setAttribute('for', `field-${field.alias}`);
+        label.textContent = field.label;
+        if (field.required) {
+          const requiredBadge = document.createElement('span');
+          requiredBadge.className = 'badge bg-danger-subtle text-danger-emphasis ms-2 align-middle';
+          requiredBadge.textContent = 'Requerido';
+          label.appendChild(requiredBadge);
+        }
+
+        wrapper.appendChild(label);
+
+        let control;
+        switch (field.valueType) {
+          case 'textarea':
+            control = document.createElement('textarea');
+            control.className = 'form-control';
+            control.rows = field.rows || 3;
+            break;
+          case 'date':
+            control = document.createElement('input');
+            control.type = 'date';
+            control.className = 'form-control';
+            break;
+          case 'time':
+            control = document.createElement('input');
+            control.type = 'time';
+            control.className = 'form-control';
+            break;
+          case 'number':
+            control = document.createElement('input');
+            control.type = 'number';
+            control.className = 'form-control';
+            control.step = 'any';
+            break;
+          case 'boolean':
+            control = document.createElement('select');
+            control.className = 'form-select';
+            control.innerHTML = `
+              <option value="">--</option>
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            `;
+            break;
+          case 'link':
+            control = createLinkControl(field.alias);
+            break;
+          default:
+            control = document.createElement('input');
+            control.type = 'text';
+            control.className = 'form-control';
+            break;
+        }
+
+        if (field.valueType !== 'link') {
+          control.id = `field-${field.alias}`;
+          control.dataset.alias = field.alias;
+          control.dataset.type = field.valueType;
+          if (field.placeholder) {
+            control.placeholder = field.placeholder;
+          }
+          wrapper.appendChild(control);
+        } else {
+          wrapper.appendChild(control);
+        }
+
+        if (field.helper) {
+          const helper = document.createElement('div');
+          helper.className = 'form-text';
+          helper.textContent = field.helper;
+          wrapper.appendChild(helper);
+        }
+
+        return wrapper;
+      }
+
+      function createLinkControl(alias) {
+        const container = document.createElement('div');
+        container.className = 'd-flex flex-column gap-2';
+
+        const urlGroup = document.createElement('div');
+        urlGroup.className = 'input-group';
+
+        const urlLabel = document.createElement('span');
+        urlLabel.className = 'input-group-text';
+        urlLabel.textContent = 'URL';
+        urlGroup.appendChild(urlLabel);
+
+        const urlInput = document.createElement('input');
+        urlInput.type = 'url';
+        urlInput.className = 'form-control';
+        urlInput.placeholder = 'https://…';
+        urlInput.dataset.alias = alias;
+        urlInput.dataset.role = 'link-url';
+        urlGroup.appendChild(urlInput);
+
+        const openButton = document.createElement('button');
+        openButton.type = 'button';
+        openButton.className = 'btn btn-outline-secondary';
+        openButton.dataset.alias = alias;
+        openButton.dataset.role = 'link-open';
+        openButton.textContent = 'Abrir';
+        urlGroup.appendChild(openButton);
+
+        const textGroup = document.createElement('div');
+        textGroup.className = 'input-group';
+
+        const textLabel = document.createElement('span');
+        textLabel.className = 'input-group-text';
+        textLabel.textContent = 'Texto';
+        textGroup.appendChild(textLabel);
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'form-control';
+        textInput.placeholder = 'Texto opcional';
+        textInput.dataset.alias = alias;
+        textInput.dataset.role = 'link-text';
+        textGroup.appendChild(textInput);
+
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'btn btn-outline-secondary';
+        clearButton.dataset.alias = alias;
+        clearButton.dataset.role = 'link-clear';
+        clearButton.textContent = 'Limpiar';
+        textGroup.appendChild(clearButton);
+
+        container.appendChild(urlGroup);
+        container.appendChild(textGroup);
+        return container;
+      }
+
+      function attachEventHandlers() {
+        elements.reloadButton.addEventListener('click', () => loadContext());
+        elements.acceptButton.addEventListener('click', () => submitAction('accept'));
+        elements.updateButton.addEventListener('click', () => submitAction('save'));
+        elements.cancelButton.addEventListener('click', resetFormToBaseline);
+        elements.deleteButton.addEventListener('click', handleDelete);
+
+        elements.formCard.addEventListener('input', handleFieldInput);
+        elements.formCard.addEventListener('change', handleFieldInput);
+        elements.formCard.addEventListener('click', handleLinkButtons);
+      }
+
+      function handleFieldInput(event) {
+        const target = event.target;
+        if (!target || !target.dataset) {
           return;
         }
-        currentRowNumber = result.rowNumber;
-        currentData = result.data;
-        renderInvitation(result);
-        setStatus('Fila ' + currentRowNumber + ' lista para editar.', false, true);
-      }
-
-      function renderInvitation(result) {
-        const template = document.getElementById('template-content');
-        const fragment = template.content.cloneNode(true);
-        fragment.querySelector('#chip-row').textContent = 'Fila #' + result.rowNumber;
-        fragment.querySelector('#chip-sheet').textContent = result.sheetName;
-        fragment.querySelector('#summary-cotizacion').textContent = currentData.cotizacion || '—';
-        fragment.querySelector('#summary-cliente').textContent = currentData.cliente || '—';
-        fragment.querySelector('#summary-estado-cotizacion').textContent = currentData.estado_cotizacion || '—';
-        fragment.querySelector('#summary-estado-propuesta').textContent = currentData.estado_propuesta || '—';
-        fragment.querySelector('#summary-estado-pipeline').textContent = currentData.estado_pipeline || '—';
-        fragment.querySelector('#summary-monto').textContent = formatMoney(currentData.monto_ofertado, currentData.moneda);
-        fragment.querySelector('#summary-moneda').textContent = currentData.moneda || '—';
-        fragment.querySelector('#summary-fecha-invitacion').textContent = formatDate(currentData.fecha_invitacion);
-
-        const form = fragment.querySelector('#form-invitation');
-        form.addEventListener('submit', submitForm);
-        fragment.querySelector('#reset').addEventListener('click', resetForm);
-        populateForm(form, currentData);
-
-        content.innerHTML = '';
-        content.appendChild(fragment);
-      }
-
-      function renderEmptyState(sheetName, expectedSheet) {
-        const template = document.getElementById('template-empty');
-        const fragment = template.content.cloneNode(true);
-        content.innerHTML = '';
-        if (sheetName && sheetName !== expectedSheet) {
-          fragment.querySelector('.empty-state').textContent = 'Abre la hoja «' + expectedSheet + '» y selecciona una fila con datos para continuar.';
+        const alias = target.dataset.alias;
+        if (!alias) {
+          return;
         }
-        content.appendChild(fragment);
-      }
+        const type = target.dataset.type;
+        const role = target.dataset.role;
 
-      function populateForm(form, data) {
-        const fields = ['estado_cotizacion', 'estado_propuesta', 'estado_pipeline', 'fecha_envio_propuesta', 'hora_envio_propuesta', 'dias_a_vencimiento', 'tiempo_respuesta_dias_hab', 'moneda_normalizada_usd', 'tipo_cambio', 'monto_ofertado_usd', 'link_carpeta_drive', 'link_archivo_enviado', 'notas_kpi'];
-        fields.forEach((name) => {
-          const el = form.querySelector('[name="' + name + '"]');
-          if (!el) return;
-          const value = data[name];
-          if (name === 'fecha_envio_propuesta' && value instanceof Date) {
-            el.value = formatInputDate(value);
-          } else if (name === 'fecha_envio_propuesta' && typeof value === 'string' && value.includes('-')) {
-            el.value = value.substring(0, 10);
-          } else if (name === 'hora_envio_propuesta' && value instanceof Date) {
-            el.value = formatInputTime(value);
-          } else if (name === 'hora_envio_propuesta' && typeof value === 'string') {
-            el.value = value.slice(0, 5);
-          } else if (el.type === 'number') {
-            el.value = value !== undefined && value !== null && value !== '' ? value : '';
+        if (role === 'link-url' || role === 'link-text') {
+          updateLinkValue(alias);
+          return;
+        }
+
+        let value = target.value;
+        if (type === 'boolean') {
+          if (value === '') {
+            value = null;
           } else {
-            el.value = value || '';
+            value = value === 'true';
           }
-        });
-        ['riesgo_d3', 'riesgo_d1', 'enviado_a_tiempo', 'requiere_visita', 'visita_ejecutada'].forEach((name) => {
-          const el = form.querySelector('[name="' + name + '"]');
-          if (!el) return;
-          el.checked = Boolean(data[name]);
-        });
-      }
-
-      function formatDate(value) {
-        if (!value) return '—';
-        if (value instanceof Date) {
-          return value.toLocaleDateString('es-PE');
         }
-        if (typeof value === 'string') {
-          const date = new Date(value);
-          if (!Number.isNaN(date.getTime())) {
-            return date.toLocaleDateString('es-PE');
-          }
-          return value;
-        }
-        return String(value);
+        setFieldValue(alias, value);
       }
 
-      function formatMoney(amount, currency) {
-        const number = Number(amount);
-        if (!Number.isFinite(number)) {
-          return amount ? amount : '—';
-        }
-        try {
-          return new Intl.NumberFormat('es-PE', { style: 'currency', currency: currency || 'PEN' }).format(number);
-        } catch (e) {
-          return number.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-      }
-
-      function formatInputDate(value) {
-        return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-      }
-
-      function formatInputTime(value) {
-        const offsetDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
-        return offsetDate.toISOString().slice(11, 16);
-      }
-
-      function submitForm(event) {
-        event.preventDefault();
-        if (!currentRowNumber) {
-          setStatus('Selecciona una fila válida antes de guardar.', true);
+      function handleLinkButtons(event) {
+        const target = event.target;
+        if (!target.dataset || !target.dataset.role) {
           return;
         }
-        const form = event.target;
-        const updates = collectFormValues(form);
-        setLoading(true);
-        setStatus('Guardando cambios…');
+        const role = target.dataset.role;
+        const alias = target.dataset.alias;
+        if (!alias) {
+          return;
+        }
+        if (role === 'link-open') {
+          event.preventDefault();
+          const value = state.values[alias] || { url: '', text: '' };
+          if (value.url) {
+            window.open(value.url, '_blank');
+          }
+        } else if (role === 'link-clear') {
+          event.preventDefault();
+          state.values[alias] = { url: '', text: '' };
+          renderLinkField(alias);
+          updateActionState();
+        }
+      }
+
+      function updateLinkValue(alias) {
+        const urlInput = elements.formCard.querySelector(`input[data-role="link-url"][data-alias="${alias}"]`);
+        const textInput = elements.formCard.querySelector(`input[data-role="link-text"][data-alias="${alias}"]`);
+        const url = urlInput ? urlInput.value.trim() : '';
+        const text = textInput ? textInput.value.trim() : '';
+        state.values[alias] = { url, text };
+        toggleLinkButtons(alias, url);
+        updateActionState();
+      }
+
+      function setFieldValue(alias, value) {
+        state.values[alias] = value === undefined ? '' : value;
+        updateActionState();
+      }
+
+      function toggleLinkButtons(alias, hasUrl) {
+        const openButton = elements.formCard.querySelector(`button[data-role="link-open"][data-alias="${alias}"]`);
+        if (openButton) {
+          openButton.disabled = !hasUrl;
+        }
+      }
+
+      function loadContext() {
+        setLoading(true, 'Cargando información de la hoja…');
         google.script.run
-          .withSuccessHandler((data) => {
-            currentData = data;
-            populateForm(form, currentData);
-            setStatus('Cambios guardados correctamente.', false, true);
+          .withSuccessHandler((context) => {
             setLoading(false);
+            processContext(context);
           })
-          .withFailureHandler(handleError)
-          .updateInvitationRow(currentRowNumber, updates);
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .getSidebarContext();
       }
 
-      function resetForm() {
-        if (!currentData) return;
-        const form = document.getElementById('form-invitation');
-        populateForm(form, currentData);
-        setStatus('Campos restablecidos.', false, true);
-      }
+      function processContext(context) {
+        clearStatus();
+        hideAlert();
+        const active = context && context.activeInvitation ? context.activeInvitation : null;
+        if (!active) {
+          showAlert('danger', 'No se pudo obtener la información de la hoja.');
+          showFormCards(false);
+          return;
+        }
 
-      function collectFormValues(form) {
-        const updates = {};
-        const elements = Array.from(form.elements);
-        elements.forEach((el) => {
-          if (!el.name) return;
-          if (el.type === 'checkbox') {
-            updates[el.name] = el.checked;
-          } else if (el.type === 'number') {
-            const value = el.value;
-            if (value === '') {
-              updates[el.name] = '';
-            } else {
-              const parsed = Number(value);
-              updates[el.name] = Number.isFinite(parsed) ? parsed : value.trim();
-            }
+        if (!active.rowNumber) {
+          state.rowNumber = null;
+          state.values = {};
+          state.baseline = {};
+          showFormCards(false);
+          if (active.sheetName && active.sheetName !== active.expectedSheetName) {
+            showAlert(
+              'warning',
+              `Abre la hoja "${active.expectedSheetName}" para gestionar las invitaciones. Actualmente estás en "${active.sheetName}".`
+            );
           } else {
-            updates[el.name] = el.value.trim();
+            showAlert('info', 'Selecciona una fila de datos (por debajo del encabezado) para trabajar desde el panel.');
           }
+          updateActionState();
+          return;
+        }
+
+        showFormCards(true);
+        applyData(active.data || {}, active.rowNumber);
+      }
+
+      function applyData(data, rowNumber) {
+        state.rowNumber = rowNumber;
+        state.baseline = {};
+        state.values = {};
+
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const incoming = Object.prototype.hasOwnProperty.call(data, alias) ? data[alias] : '';
+            if (field.valueType === 'boolean') {
+              const value = incoming === true ? true : incoming === false ? false : null;
+              state.baseline[alias] = value;
+              state.values[alias] = value;
+            } else if (field.valueType === 'link') {
+              const value = {
+                url: incoming && incoming.url ? String(incoming.url) : '',
+                text: incoming && incoming.text ? String(incoming.text) : '',
+              };
+              state.baseline[alias] = { ...value };
+              state.values[alias] = { ...value };
+            } else {
+              const stringValue = incoming === null || incoming === undefined ? '' : String(incoming);
+              state.baseline[alias] = stringValue;
+              state.values[alias] = stringValue;
+            }
+          });
+        });
+
+        renderAllFields();
+        updateSummaryCard(data || {});
+        clearStatus();
+        updateActionState();
+      }
+
+      function renderAllFields() {
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            if (field.valueType === 'link') {
+              renderLinkField(field.alias);
+            } else {
+              renderStandardField(field);
+            }
+          });
+        });
+      }
+
+      function renderStandardField(field) {
+        const alias = field.alias;
+        const container = elements.formCard.querySelector(`[data-alias="${alias}"]`);
+        if (!container) {
+          return;
+        }
+        const input = container.querySelector('input, textarea, select');
+        if (!input) {
+          return;
+        }
+        const value = state.values[alias];
+        if (field.valueType === 'boolean') {
+          input.value = value === null ? '' : value ? 'true' : 'false';
+        } else {
+          input.value = value === undefined || value === null ? '' : String(value);
+        }
+      }
+
+      function renderLinkField(alias) {
+        const urlInput = elements.formCard.querySelector(`input[data-role="link-url"][data-alias="${alias}"]`);
+        const textInput = elements.formCard.querySelector(`input[data-role="link-text"][data-alias="${alias}"]`);
+        const value = state.values[alias] || { url: '', text: '' };
+        if (urlInput) {
+          urlInput.value = value.url || '';
+        }
+        if (textInput) {
+          textInput.value = value.text || '';
+        }
+        toggleLinkButtons(alias, !!value.url);
+      }
+
+      function updateSummaryCard(data) {
+        elements.summaryTitle.textContent = data.invitation_id ? `ID ${data.invitation_id}` : 'Sin ID asignado';
+        elements.summarySubtitle.textContent = data.cliente ? data.cliente : 'Cliente no especificado';
+        elements.summaryBadge.textContent = data.cotizacion ? `Cotización ${data.cotizacion}` : `Fila ${state.rowNumber}`;
+        elements.summaryDescription.textContent = data.descripcion ? data.descripcion : 'Sin descripción registrada.';
+
+        elements.summaryStatuses.innerHTML = '';
+        const statuses = [
+          { label: 'Cotización', value: data.estado_cotizacion, tone: 'primary' },
+          { label: 'Propuesta', value: data.estado_propuesta, tone: 'success' },
+          { label: 'Pipeline', value: data.estado_pipeline, tone: 'warning' },
+        ];
+        statuses.forEach((status) => {
+          if (!status.value) {
+            return;
+          }
+          const badge = document.createElement('span');
+          const toneClass =
+            status.tone === 'success'
+              ? 'badge-soft-success'
+              : status.tone === 'warning'
+              ? 'badge-soft-warning'
+              : 'badge-soft-primary';
+          badge.className = `status-badge ${toneClass}`;
+          badge.textContent = `${status.label}: ${status.value}`;
+          elements.summaryStatuses.appendChild(badge);
+        });
+      }
+
+      function showFormCards(visible) {
+        const method = visible ? 'remove' : 'add';
+        elements.summaryCard.classList[method]('d-none');
+        elements.formCard.classList[method]('d-none');
+        elements.actionsCard.classList[method]('d-none');
+      }
+
+      function isDirty() {
+        return FIELD_SECTIONS.some((section) =>
+          section.fields.some((field) => !valuesAreEqual(state.values[field.alias], state.baseline[field.alias]))
+        );
+      }
+
+      function valuesAreEqual(a, b) {
+        if (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
+          return JSON.stringify(a) === JSON.stringify(b);
+        }
+        return a === b;
+      }
+
+      function updateActionState() {
+        const hasRow = !!state.rowNumber;
+        const dirty = hasRow && isDirty();
+        const disabled = !hasRow || state.loading;
+
+        elements.acceptButton.disabled = disabled;
+        elements.updateButton.disabled = disabled || !dirty;
+        elements.cancelButton.disabled = disabled || !dirty;
+        elements.deleteButton.disabled = disabled;
+        elements.reloadButton.disabled = state.loading;
+      }
+
+      function buildUpdatesPayload() {
+        const updates = {};
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const value = state.values[alias];
+            if (field.valueType === 'boolean') {
+              updates[alias] = value === null ? '' : value;
+            } else {
+              updates[alias] = value === undefined ? '' : value;
+            }
+          });
         });
         return updates;
       }
 
-      function syncInvitation() {
-        if (!currentRowNumber) {
-          setStatus('Selecciona una fila válida antes de sincronizar.', true);
+      function submitAction(mode) {
+        if (!state.rowNumber) {
           return;
         }
-        setLoading(true);
-        setStatus('Sincronizando con Supabase…');
-        google.script.run
-          .withSuccessHandler((res) => {
-            setStatus('Sincronizadas ' + res.syncedRows + ' fila(s) con Supabase.', false, true);
+        const updates = buildUpdatesPayload();
+        const request = { rowNumber: state.rowNumber, updates };
+        const isAccept = mode === 'accept';
+        setLoading(true, isAccept ? 'Sincronizando invitación…' : 'Guardando cambios…');
+
+        const runner = google.script.run
+          .withSuccessHandler((response) => {
             setLoading(false);
+            if (response && response.data) {
+              applyData(response.data, response.rowNumber);
+            }
+            if (isAccept && response && typeof response.syncedRows === 'number') {
+              setStatus(`Sincronización exitosa: ${response.syncedRows} registro(s) enviados a Supabase.`, 'success');
+            } else {
+              setStatus('Cambios guardados correctamente.', 'success');
+            }
           })
-          .withFailureHandler(handleError)
-          .syncActiveInvitation();
-      }
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          });
 
-      function handleError(error) {
-        console.error(error);
-        setStatus(error && error.message ? error.message : 'Ocurrió un error inesperado.', true);
-        setLoading(false);
-      }
-
-      function setStatus(message, isError = false, isPositive = false) {
-        statusLabel.textContent = message;
-        let className = 'status';
-        if (isError) {
-          className += ' error';
-        } else if (isPositive) {
-          className += ' success';
+        if (isAccept) {
+          runner.acceptInvitation(request);
+        } else {
+          runner.saveInvitation(request);
         }
-        statusLabel.className = className;
       }
 
-      function setLoading(value) {
-        refreshBtn.disabled = value;
-        syncBtn.disabled = value;
-        const form = document.getElementById('form-invitation');
-        if (form) {
-          Array.from(form.querySelectorAll('input, textarea, button')).forEach((el) => {
-            if (el.id === 'reset') {
-              el.disabled = value;
-            } else if (el.type !== 'button' || el.type === 'submit') {
-              el.disabled = value && el.type === 'submit';
+      function resetFormToBaseline() {
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const baselineValue = state.baseline[alias];
+            if (field.valueType === 'link') {
+              state.values[alias] = baselineValue ? { ...baselineValue } : { url: '', text: '' };
+            } else {
+              state.values[alias] = baselineValue;
             }
           });
+        });
+        renderAllFields();
+        clearStatus();
+        updateActionState();
+      }
+
+      function handleDelete() {
+        if (!state.rowNumber || state.loading) {
+          return;
         }
+        const confirmed = confirm(
+          `¿Eliminar la fila ${state.rowNumber} de la hoja "${SHEET_NAME}"? Esta acción no se puede deshacer.`
+        );
+        if (!confirmed) {
+          return;
+        }
+        setLoading(true, 'Eliminando fila seleccionada…');
+        google.script.run
+          .withSuccessHandler(() => {
+            setLoading(false);
+            setStatus('Fila eliminada correctamente. Selecciona otra fila para continuar.', 'success');
+            state.rowNumber = null;
+            state.values = {};
+            state.baseline = {};
+            showFormCards(false);
+            updateActionState();
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .deleteInvitation({ rowNumber: state.rowNumber });
+      }
+
+      function setLoading(isLoading, message) {
+        state.loading = isLoading;
+        if (message) {
+          elements.loadingMessage.textContent = message;
+        }
+        elements.loadingOverlay.classList.toggle('d-none', !isLoading);
+        updateActionState();
+      }
+
+      function setStatus(message, tone) {
+        elements.statusMessage.textContent = message || '';
+        elements.statusMessage.className = 'form-text mt-2';
+        if (!message) {
+          return;
+        }
+        if (tone === 'success') {
+          elements.statusMessage.classList.add('text-success');
+        } else if (tone === 'error') {
+          elements.statusMessage.classList.add('text-danger');
+        } else {
+          elements.statusMessage.classList.add('text-muted');
+        }
+      }
+
+      function clearStatus() {
+        setStatus('', 'info');
+      }
+
+      function showAlert(tone, message) {
+        const toneClass =
+          tone === 'danger'
+            ? 'alert-danger'
+            : tone === 'warning'
+            ? 'alert-warning'
+            : tone === 'info'
+            ? 'alert-info'
+            : 'alert-secondary';
+        elements.alertContainer.innerHTML = `
+          <div class="alert ${toneClass}" role="alert">
+            ${message}
+          </div>
+        `;
+      }
+
+      function hideAlert() {
+        elements.alertContainer.innerHTML = '';
+      }
+
+      function showError(error) {
+        const message = error && error.message ? error.message : String(error);
+        setStatus(message, 'error');
       }
     </script>
   </body>

@@ -1,6 +1,6 @@
 /***** CONFIG *****/
-const SUPABASE_URL = 'https://<TU-PROYECTO>.supabase.co';
-const SUPABASE_ANON_KEY = '<TU-ANON-KEY>'; // MVP. Luego migraremos a Edge Function + x-api-key.
+const SUPABASE_URL = 'https://wnhqyccqxifhusltigmq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduaHF5Y2NxeGlmaHVzbHRpZ21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NjE0MTUsImV4cCI6MjA3ODAzNzQxNX0.bauaVdlUzsHNHeVDeftFrqbVX5Rya1gA6fiVYVc3Mos'; // MVP. Luego migraremos a Edge Function + x-api-key.
 const SUPABASE_TABLE = 'invitations';
 const INVITATIONS_HEADER_ROW = 1;
 
@@ -111,6 +111,61 @@ function _boolOrNull(v) {
   return null;
 }
 
+function getUrlFromRichTextValue(richText) {
+  if (!richText) {
+    return '';
+  }
+  try {
+    if (typeof richText.getLinkUrl === 'function') {
+      const direct = richText.getLinkUrl();
+      if (direct) {
+        return direct;
+      }
+    }
+    if (typeof richText.getRuns === 'function') {
+      const runs = richText.getRuns();
+      if (runs && runs.length) {
+        for (var i = 0; i < runs.length; i++) {
+          const runUrl = runs[i].getLinkUrl();
+          if (runUrl) {
+            return runUrl;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Ignorar problemas de compatibilidad de RichTextValue.
+  }
+  return '';
+}
+
+function _hyperlinkCellValue(row, colName) {
+  const sheet = _sheet();
+  const col = _colIndexByName(colName);
+  const range = sheet.getRange(row, col);
+  const formula = range.getFormula();
+  if (formula) {
+    const parsed = parseHyperlinkFormula(formula);
+    if (parsed && parsed.url) {
+      return parsed.url;
+    }
+  }
+  const richText = range.getRichTextValue();
+  const richUrl = getUrlFromRichTextValue(richText);
+  if (richUrl) {
+    return richUrl;
+  }
+  const displayValue = range.getDisplayValue();
+  if (displayValue && typeof displayValue === 'string' && displayValue.trim().startsWith('http')) {
+    return displayValue.trim();
+  }
+  const rawValue = range.getValue();
+  if (typeof rawValue === 'string' && rawValue.trim().startsWith('http')) {
+    return rawValue.trim();
+  }
+  return displayValue || rawValue || null;
+}
+
 /***** MAPEADOR (Sheet → JSON Supabase) *****/
 function buildInvitationPayload(row) {
   const get = function (name) {
@@ -146,8 +201,8 @@ function buildInvitationPayload(row) {
     estado_propuesta: get('Estado de Propuesta') || null,
     orden_de_compra: get('Orden de Compra') || null,
     fecha_orden_compra: _dateOrNull(get('Fecha de la Orden de Compra')),
-    link_carpeta_drive: get('Link Carpeta Drive') || null,
-    link_archivo_enviado: get('Link Archivo Enviado') || null,
+    link_carpeta_drive: _hyperlinkCellValue(row, 'Link Carpeta Drive') || null,
+    link_archivo_enviado: _hyperlinkCellValue(row, 'Link Archivo Enviado') || null,
     fecha_envio_propuesta: _dateOrNull(get('Fecha de Envío de Propuesta')),
     hora_envio_propuesta: get('Hora de Envío de Propuesta') || null,
     dias_a_vencimiento: _numberOrNull(get('Días a Vencimiento')),
