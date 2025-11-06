@@ -2,134 +2,561 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Panel de pruebas</title>
+    <title>Gestión de Invitaciones</title>
     <style>
+      :root {
+        color-scheme: light only;
+        --accent: #2563eb;
+        --accent-dark: #1d4ed8;
+        --bg: #f5f7fa;
+        --card-bg: #ffffff;
+        --text: #1f2933;
+        --muted: #64748b;
+        --border: #dce3f0;
+        --success: #0f5132;
+        --error: #b91c1c;
+      }
+
       body {
-        font-family: "Segoe UI", Roboto, sans-serif;
         margin: 0;
         padding: 16px;
-        background: #f5f7fa;
-        color: #1f2933;
+        background: var(--bg);
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        color: var(--text);
       }
+
       h1 {
-        font-size: 18px;
+        margin: 0 0 12px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      h2 {
+        font-size: 16px;
         margin: 0 0 12px;
       }
+
       .section {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 16px;
         margin-bottom: 16px;
-        padding: 12px;
-        background: #ffffff;
-        border-radius: 8px;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+        border: 1px solid rgba(15, 23, 42, 0.04);
       }
+
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
       button {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: #ffffff;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border: none;
-        border-radius: 6px;
-        background: #2563eb;
-        color: #ffffff;
-        font-weight: 600;
-        cursor: pointer;
+        gap: 6px;
+        transition: background 0.15s ease;
       }
+
+      button:hover:not(:disabled) {
+        background: var(--accent-dark);
+      }
+
       button.secondary {
         background: #475569;
       }
+
+      button.ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+
       button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-      pre {
-        background: #0f172a;
-        color: #f8fafc;
-        padding: 12px;
-        border-radius: 6px;
-        white-space: pre-wrap;
+
+      dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 12px;
+        font-size: 13px;
+      }
+
+      dt {
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
         word-break: break-word;
       }
-      textarea {
-        width: 100%;
-        min-height: 80px;
-        border-radius: 6px;
-        border: 1px solid #cbd5f5;
-        padding: 8px;
-        box-sizing: border-box;
+
+      .form-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13px;
+      }
+
+      .field label {
+        font-weight: 600;
+      }
+
+      .field input,
+      .field textarea,
+      .field select {
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        padding: 8px 10px;
         font-family: inherit;
+        font-size: 13px;
+        background: #f8fafc;
       }
+
+      .field textarea {
+        min-height: 70px;
+        resize: vertical;
+      }
+
+      .field.checkbox {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .field.checkbox label {
+        font-weight: 500;
+      }
+
       .status {
+        margin: 8px 0 0;
         font-size: 12px;
-        margin-top: 8px;
-        color: #0f5132;
+        color: var(--muted);
       }
-      .error {
-        color: #b91c1c;
+
+      .status.success {
+        color: var(--success);
+      }
+
+      .status.error {
+        color: var(--error);
+      }
+
+      .empty-state {
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .chip {
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--accent-dark);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
       }
     </style>
   </head>
   <body>
-    <h1>Panel de pruebas</h1>
-    <p>Hoja activa: <strong><?= sheetName ?></strong></p>
-
-    <div class="section">
-      <h2>Fila activa</h2>
-      <button id="fetch-row" onclick="fetchActiveRow()">Consultar</button>
-      <pre id="row-result">Sin datos todavía…</pre>
+    <h1>Gestión de Invitaciones</h1>
+    <div class="header-actions">
+      <button id="refresh" type="button">Actualizar fila activa</button>
+      <button id="sync" type="button">Sincronizar con Supabase</button>
     </div>
+    <p id="status" class="status"></p>
 
-    <div class="section">
-      <h2>Notas rápidas</h2>
-      <textarea id="note" placeholder="Escribe una nota para la celda activa..."></textarea>
-      <button class="secondary" id="save-note" onclick="saveNote()">Guardar nota</button>
-      <p id="note-status" class="status"></p>
-    </div>
+    <div id="content"></div>
+
+    <template id="template-content">
+      <div class="section">
+        <h2>Resumen de la invitación</h2>
+        <div class="chips">
+          <span class="chip" id="chip-row"></span>
+          <span class="chip" id="chip-sheet"></span>
+        </div>
+        <dl>
+          <dt>Cotización</dt>
+          <dd id="summary-cotizacion"></dd>
+          <dt>Cliente</dt>
+          <dd id="summary-cliente"></dd>
+          <dt>Estado de Cotización</dt>
+          <dd id="summary-estado-cotizacion"></dd>
+          <dt>Estado Propuesta</dt>
+          <dd id="summary-estado-propuesta"></dd>
+          <dt>Estado Pipeline</dt>
+          <dd id="summary-estado-pipeline"></dd>
+          <dt>Monto ofertado</dt>
+          <dd id="summary-monto"></dd>
+          <dt>Moneda</dt>
+          <dd id="summary-moneda"></dd>
+          <dt>Fecha de Invitación</dt>
+          <dd id="summary-fecha-invitacion"></dd>
+        </dl>
+      </div>
+
+      <form class="section" id="form-invitation">
+        <h2>Actualizar campos clave</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="estado_cotizacion">Estado de Cotización</label>
+            <input list="estado_cotizacion_sugerencias" id="estado_cotizacion" name="estado_cotizacion" />
+            <datalist id="estado_cotizacion_sugerencias">
+              <option value="Registrada"></option>
+              <option value="En evaluación"></option>
+              <option value="Cerrada"></option>
+              <option value="Suspendida"></option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="estado_propuesta">Estado de Propuesta</label>
+            <input list="estado_propuesta_sugerencias" id="estado_propuesta" name="estado_propuesta" />
+            <datalist id="estado_propuesta_sugerencias">
+              <option value="Borrador"></option>
+              <option value="Enviada"></option>
+              <option value="Ganada"></option>
+              <option value="Perdida"></option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="estado_pipeline">Estado Pipeline</label>
+            <input list="estado_pipeline_sugerencias" id="estado_pipeline" name="estado_pipeline" />
+            <datalist id="estado_pipeline_sugerencias">
+              <option value="Leads"></option>
+              <option value="Oportunidad"></option>
+              <option value="Propuesta"></option>
+              <option value="Negociación"></option>
+              <option value="Cierre"></option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="fecha_envio_propuesta">Fecha envío propuesta</label>
+            <input type="date" id="fecha_envio_propuesta" name="fecha_envio_propuesta" />
+          </div>
+          <div class="field">
+            <label for="hora_envio_propuesta">Hora envío propuesta</label>
+            <input type="time" id="hora_envio_propuesta" name="hora_envio_propuesta" />
+          </div>
+          <div class="field">
+            <label for="dias_a_vencimiento">Días a vencimiento</label>
+            <input type="number" id="dias_a_vencimiento" name="dias_a_vencimiento" min="0" step="1" />
+          </div>
+          <div class="field">
+            <label for="tiempo_respuesta_dias_hab">Tiempo de respuesta (días hábiles)</label>
+            <input type="number" id="tiempo_respuesta_dias_hab" name="tiempo_respuesta_dias_hab" min="0" step="0.01" />
+          </div>
+          <div class="field">
+            <label for="moneda_normalizada_usd">Moneda normalizada (USD)</label>
+            <input type="text" id="moneda_normalizada_usd" name="moneda_normalizada_usd" />
+          </div>
+          <div class="field">
+            <label for="tipo_cambio">Tipo de cambio</label>
+            <input type="number" id="tipo_cambio" name="tipo_cambio" min="0" step="0.0001" />
+          </div>
+          <div class="field">
+            <label for="monto_ofertado_usd">Monto ofertado (USD)</label>
+            <input type="number" id="monto_ofertado_usd" name="monto_ofertado_usd" min="0" step="0.01" />
+          </div>
+          <div class="field">
+            <label for="link_carpeta_drive">Link carpeta Drive</label>
+            <input type="url" id="link_carpeta_drive" name="link_carpeta_drive" placeholder="https://" />
+          </div>
+          <div class="field">
+            <label for="link_archivo_enviado">Link archivo enviado</label>
+            <input type="url" id="link_archivo_enviado" name="link_archivo_enviado" placeholder="https://" />
+          </div>
+          <div class="field checkbox">
+            <input type="checkbox" id="riesgo_d3" name="riesgo_d3" />
+            <label for="riesgo_d3">Riesgo D-3</label>
+          </div>
+          <div class="field checkbox">
+            <input type="checkbox" id="riesgo_d1" name="riesgo_d1" />
+            <label for="riesgo_d1">Riesgo D-1</label>
+          </div>
+          <div class="field checkbox">
+            <input type="checkbox" id="enviado_a_tiempo" name="enviado_a_tiempo" />
+            <label for="enviado_a_tiempo">Enviado a tiempo</label>
+          </div>
+          <div class="field checkbox">
+            <input type="checkbox" id="requiere_visita" name="requiere_visita" />
+            <label for="requiere_visita">Requiere visita técnica</label>
+          </div>
+          <div class="field checkbox">
+            <input type="checkbox" id="visita_ejecutada" name="visita_ejecutada" />
+            <label for="visita_ejecutada">Visita ejecutada</label>
+          </div>
+          <div class="field">
+            <label for="notas_kpi">Notas KPI</label>
+            <textarea id="notas_kpi" name="notas_kpi" placeholder="Resumen y próximos pasos..."></textarea>
+          </div>
+        </div>
+        <div style="margin-top: 12px; display: flex; gap: 8px;">
+          <button type="submit">Guardar cambios</button>
+          <button type="button" class="ghost" id="reset">Restablecer</button>
+        </div>
+      </form>
+    </template>
+
+    <template id="template-empty">
+      <div class="section empty-state">
+        Selecciona una fila con datos en la hoja «Invitaciones» para ver y actualizar la información.
+      </div>
+    </template>
 
     <script>
-      function fetchActiveRow() {
+      const statusLabel = document.getElementById('status');
+      const content = document.getElementById('content');
+      const refreshBtn = document.getElementById('refresh');
+      const syncBtn = document.getElementById('sync');
+      let currentRowNumber = null;
+      let currentData = null;
+
+      document.addEventListener('DOMContentLoaded', () => {
+        refreshBtn.addEventListener('click', refreshInvitation);
+        syncBtn.addEventListener('click', syncInvitation);
+        refreshInvitation();
+      });
+
+      function refreshInvitation() {
+        setStatus('Cargando fila activa…');
         setLoading(true);
         google.script.run
+          .withSuccessHandler(handleInvitation)
+          .withFailureHandler(handleError)
+          .getActiveInvitation();
+      }
+
+      function handleInvitation(result) {
+        setLoading(false);
+        if (!result || !result.data) {
+          currentRowNumber = null;
+          currentData = null;
+          renderEmptyState(result && result.sheetName, result && result.expectedSheetName);
+          setStatus('Selecciona una fila válida en la hoja «' + (result && result.expectedSheetName ? result.expectedSheetName : 'Invitaciones') + '».', true);
+          return;
+        }
+        currentRowNumber = result.rowNumber;
+        currentData = result.data;
+        renderInvitation(result);
+        setStatus('Fila ' + currentRowNumber + ' lista para editar.', false, true);
+      }
+
+      function renderInvitation(result) {
+        const template = document.getElementById('template-content');
+        const fragment = template.content.cloneNode(true);
+        fragment.querySelector('#chip-row').textContent = 'Fila #' + result.rowNumber;
+        fragment.querySelector('#chip-sheet').textContent = result.sheetName;
+        fragment.querySelector('#summary-cotizacion').textContent = currentData.cotizacion || '—';
+        fragment.querySelector('#summary-cliente').textContent = currentData.cliente || '—';
+        fragment.querySelector('#summary-estado-cotizacion').textContent = currentData.estado_cotizacion || '—';
+        fragment.querySelector('#summary-estado-propuesta').textContent = currentData.estado_propuesta || '—';
+        fragment.querySelector('#summary-estado-pipeline').textContent = currentData.estado_pipeline || '—';
+        fragment.querySelector('#summary-monto').textContent = formatMoney(currentData.monto_ofertado, currentData.moneda);
+        fragment.querySelector('#summary-moneda').textContent = currentData.moneda || '—';
+        fragment.querySelector('#summary-fecha-invitacion').textContent = formatDate(currentData.fecha_invitacion);
+
+        const form = fragment.querySelector('#form-invitation');
+        form.addEventListener('submit', submitForm);
+        fragment.querySelector('#reset').addEventListener('click', resetForm);
+        populateForm(form, currentData);
+
+        content.innerHTML = '';
+        content.appendChild(fragment);
+      }
+
+      function renderEmptyState(sheetName, expectedSheet) {
+        const template = document.getElementById('template-empty');
+        const fragment = template.content.cloneNode(true);
+        content.innerHTML = '';
+        if (sheetName && sheetName !== expectedSheet) {
+          fragment.querySelector('.empty-state').textContent = 'Abre la hoja «' + expectedSheet + '» y selecciona una fila con datos para continuar.';
+        }
+        content.appendChild(fragment);
+      }
+
+      function populateForm(form, data) {
+        const fields = ['estado_cotizacion', 'estado_propuesta', 'estado_pipeline', 'fecha_envio_propuesta', 'hora_envio_propuesta', 'dias_a_vencimiento', 'tiempo_respuesta_dias_hab', 'moneda_normalizada_usd', 'tipo_cambio', 'monto_ofertado_usd', 'link_carpeta_drive', 'link_archivo_enviado', 'notas_kpi'];
+        fields.forEach((name) => {
+          const el = form.querySelector('[name="' + name + '"]');
+          if (!el) return;
+          const value = data[name];
+          if (name === 'fecha_envio_propuesta' && value instanceof Date) {
+            el.value = formatInputDate(value);
+          } else if (name === 'fecha_envio_propuesta' && typeof value === 'string' && value.includes('-')) {
+            el.value = value.substring(0, 10);
+          } else if (name === 'hora_envio_propuesta' && value instanceof Date) {
+            el.value = formatInputTime(value);
+          } else if (name === 'hora_envio_propuesta' && typeof value === 'string') {
+            el.value = value.slice(0, 5);
+          } else if (el.type === 'number') {
+            el.value = value !== undefined && value !== null && value !== '' ? value : '';
+          } else {
+            el.value = value || '';
+          }
+        });
+        ['riesgo_d3', 'riesgo_d1', 'enviado_a_tiempo', 'requiere_visita', 'visita_ejecutada'].forEach((name) => {
+          const el = form.querySelector('[name="' + name + '"]');
+          if (!el) return;
+          el.checked = Boolean(data[name]);
+        });
+      }
+
+      function formatDate(value) {
+        if (!value) return '—';
+        if (value instanceof Date) {
+          return value.toLocaleDateString('es-PE');
+        }
+        if (typeof value === 'string') {
+          const date = new Date(value);
+          if (!Number.isNaN(date.getTime())) {
+            return date.toLocaleDateString('es-PE');
+          }
+          return value;
+        }
+        return String(value);
+      }
+
+      function formatMoney(amount, currency) {
+        const number = Number(amount);
+        if (!Number.isFinite(number)) {
+          return amount ? amount : '—';
+        }
+        try {
+          return new Intl.NumberFormat('es-PE', { style: 'currency', currency: currency || 'PEN' }).format(number);
+        } catch (e) {
+          return number.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      }
+
+      function formatInputDate(value) {
+        return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      }
+
+      function formatInputTime(value) {
+        const offsetDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+        return offsetDate.toISOString().slice(11, 16);
+      }
+
+      function submitForm(event) {
+        event.preventDefault();
+        if (!currentRowNumber) {
+          setStatus('Selecciona una fila válida antes de guardar.', true);
+          return;
+        }
+        const form = event.target;
+        const updates = collectFormValues(form);
+        setLoading(true);
+        setStatus('Guardando cambios…');
+        google.script.run
           .withSuccessHandler((data) => {
-            const content = JSON.stringify(data, null, 2);
-            document.getElementById('row-result').textContent = content;
-            setStatus('Fila recuperada correctamente.');
+            currentData = data;
+            populateForm(form, currentData);
+            setStatus('Cambios guardados correctamente.', false, true);
             setLoading(false);
           })
           .withFailureHandler(handleError)
-          .getActiveRowData();
+          .updateInvitationRow(currentRowNumber, updates);
       }
 
-      function saveNote() {
-        const note = document.getElementById('note').value.trim();
-        if (!note) {
-          setStatus('Debes escribir una nota antes de guardar.', true);
+      function resetForm() {
+        if (!currentData) return;
+        const form = document.getElementById('form-invitation');
+        populateForm(form, currentData);
+        setStatus('Campos restablecidos.', false, true);
+      }
+
+      function collectFormValues(form) {
+        const updates = {};
+        const elements = Array.from(form.elements);
+        elements.forEach((el) => {
+          if (!el.name) return;
+          if (el.type === 'checkbox') {
+            updates[el.name] = el.checked;
+          } else if (el.type === 'number') {
+            const value = el.value;
+            if (value === '') {
+              updates[el.name] = '';
+            } else {
+              const parsed = Number(value);
+              updates[el.name] = Number.isFinite(parsed) ? parsed : value.trim();
+            }
+          } else {
+            updates[el.name] = el.value.trim();
+          }
+        });
+        return updates;
+      }
+
+      function syncInvitation() {
+        if (!currentRowNumber) {
+          setStatus('Selecciona una fila válida antes de sincronizar.', true);
           return;
         }
         setLoading(true);
+        setStatus('Sincronizando con Supabase…');
         google.script.run
-          .withSuccessHandler((info) => {
-            setStatus(`Nota guardada en fila ${info.row}, columna ${info.column}.`);
+          .withSuccessHandler((res) => {
+            setStatus('Sincronizadas ' + res.syncedRows + ' fila(s) con Supabase.', false, true);
             setLoading(false);
           })
           .withFailureHandler(handleError)
-          .logNoteOnRow(note);
-      }
-
-      function setStatus(message, isError = false) {
-        const label = document.getElementById('note-status');
-        label.textContent = message;
-        label.className = isError ? 'status error' : 'status';
-      }
-
-      function setLoading(value) {
-        document.getElementById('fetch-row').disabled = value;
-        document.getElementById('save-note').disabled = value;
+          .syncActiveInvitation();
       }
 
       function handleError(error) {
         console.error(error);
-        setStatus(error.message || 'Ocurrió un error inesperado.', true);
+        setStatus(error && error.message ? error.message : 'Ocurrió un error inesperado.', true);
         setLoading(false);
+      }
+
+      function setStatus(message, isError = false, isPositive = false) {
+        statusLabel.textContent = message;
+        let className = 'status';
+        if (isError) {
+          className += ' error';
+        } else if (isPositive) {
+          className += ' success';
+        }
+        statusLabel.className = className;
+      }
+
+      function setLoading(value) {
+        refreshBtn.disabled = value;
+        syncBtn.disabled = value;
+        const form = document.getElementById('form-invitation');
+        if (form) {
+          Array.from(form.querySelectorAll('input, textarea, button')).forEach((el) => {
+            if (el.id === 'reset') {
+              el.disabled = value;
+            } else if (el.type !== 'button' || el.type === 'submit') {
+              el.disabled = value && el.type === 'submit';
+            }
+          });
+        }
       }
     </script>
   </body>
