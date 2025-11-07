@@ -154,6 +154,27 @@
         }
       }
 
+      .field-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.08);
+        color: #312e81;
+        margin-top: 0.4rem;
+      }
+
+      .field-option-chip .color-dot {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
       .form-control[readonly],
       .form-control[disabled],
       .form-select[disabled] {
@@ -697,6 +718,9 @@
         wrapper.className = columnClass;
         wrapper.dataset.alias = field.alias;
         wrapper.dataset.type = field.valueType;
+        if (field.palette) {
+          wrapper.dataset.palette = 'true';
+        }
 
         const label = document.createElement('label');
         label.className = 'form-label';
@@ -785,6 +809,20 @@
           helper.className = 'form-text';
           helper.textContent = field.helper;
           wrapper.appendChild(helper);
+        }
+
+        if (field.palette) {
+          const chip = document.createElement('div');
+          chip.className = 'field-option-chip';
+          chip.dataset.role = 'option-chip';
+          const dot = document.createElement('span');
+          dot.className = 'color-dot';
+          const text = document.createElement('span');
+          text.dataset.role = 'option-chip-label';
+          text.textContent = 'Sin selección';
+          chip.appendChild(dot);
+          chip.appendChild(text);
+          wrapper.appendChild(chip);
         }
 
         return wrapper;
