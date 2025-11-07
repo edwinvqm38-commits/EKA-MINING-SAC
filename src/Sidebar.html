@@ -418,7 +418,7 @@
       crossorigin="anonymous"
     ></script>
     <script>
-      const FIELD_SECTIONS = JSON.parse(<?!= JSON.stringify(fieldSectionsJson) ?>);
+      const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
       const PERMISSIONS_SHEET_NAME = <?!= JSON.stringify(permissionsSheetName) ?>;
