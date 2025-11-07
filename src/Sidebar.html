@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestión de Invitaciones</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        background: #f6f7fb;
+        font-family: 'Segoe UI', Roboto, sans-serif;
+      }
+
+      .sidebar-app {
+        position: relative;
+        min-height: 100vh;
+      }
+
+      .card {
+        border-radius: 14px;
+        border: none;
+      }
+
+      .card.shadow-sm {
+        box-shadow: 0 12px 24px -18px rgba(31, 41, 55, 0.45);
+      }
+
+      .nav-pills .nav-link {
+        font-weight: 600;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #3949ab;
+        border: 1px solid transparent;
+        transition: all 0.15s ease-in-out;
+        padding-block: 0.55rem;
+      }
+
+      .nav-pills .nav-link.active {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #ffffff;
+        box-shadow: 0 10px 18px -12px rgba(99, 102, 241, 0.85);
+      }
+
+      .tab-pane {
+        min-height: 220px;
+      }
+
+      label.form-label {
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .form-text {
+        font-size: 0.75rem;
+      }
+
+      .input-group-text {
+        font-weight: 600;
+      }
+
+      .status-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.2rem 0.65rem;
+      }
+
+      .badge-soft-primary {
+        background: rgba(59, 130, 246, 0.1);
+        color: #1d4ed8;
+      }
+
+      .badge-soft-success {
+        background: rgba(34, 197, 94, 0.12);
+        color: #15803d;
+      }
+
+      .badge-soft-warning {
+        background: rgba(250, 204, 21, 0.18);
+        color: #b45309;
+      }
+
+      .badge-soft-secondary {
+        background: rgba(99, 102, 241, 0.12);
+        color: #4338ca;
+      }
+
+      .field-group-card {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.18);
+        border-radius: 14px;
+      }
+
+      .field-group-card .group-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #3730a3;
+        margin-bottom: 0.35rem;
+      }
+
+      .field-group-card .group-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.75rem;
+      }
+
+      .loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(246, 247, 251, 0.85);
+        z-index: 20;
+      }
+
+      .loading-overlay .overlay-box {
+        background: #ffffff;
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.45);
+        text-align: center;
+      }
+
+      .loading-overlay .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+
+      .floating-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .floating-buttons .btn {
+        flex: 1 1 auto;
+        min-width: 48%;
+      }
+
+      @media (max-width: 480px) {
+        .floating-buttons .btn {
+          min-width: 100%;
+        }
+      }
+
+      .field-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.08);
+        color: #312e81;
+        margin-top: 0.4rem;
+      }
+
+      .field-option-chip .color-dot {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .form-control[readonly],
+      .form-control[disabled],
+      .form-select[disabled] {
+        background-color: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar-app container-fluid py-3">
+      <div class="d-flex align-items-start justify-content-between gap-2 mb-3 flex-wrap">
+        <div>
+          <h1 class="h5 fw-semibold mb-1">Gestión de Invitaciones</h1>
+          <div class="text-muted small">Hoja configurada: <span class="fw-semibold" id="configuredSheet"><?!= sheetName ?></span></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-primary btn-sm" id="dictionaryButton" type="button">
+            Diccionario columnas
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="reloadButton" type="button">Recargar</button>
+        </div>
+      </div>
+
+      <div id="alertContainer"></div>
+
+      <div id="summaryCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+              <div class="text-uppercase text-muted small">Fila activa</div>
+              <div class="fw-semibold" id="rowSummaryTitle"></div>
+              <div class="text-muted small" id="rowSummarySubtitle"></div>
+            </div>
+            <span class="badge badge-soft-secondary" id="rowSummaryBadge"></span>
+          </div>
+          <p class="small text-body-secondary mt-2 mb-0" id="rowSummaryDescription"></p>
+          <div class="d-flex flex-wrap gap-1 mt-2" id="rowSummaryStatuses"></div>
+        </div>
+      </div>
+
+      <div id="formCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <ul class="nav nav-pills nav-fill gap-2 mb-3" id="sectionTabs" role="tablist"></ul>
+          <div class="tab-content" id="sectionTabContent"></div>
+        </div>
+      </div>
+
+      <div id="actionsCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <div class="floating-buttons mb-2">
+            <button id="acceptButton" type="button" class="btn btn-primary">
+              Aceptar y sincronizar
+            </button>
+            <button id="updateButton" type="button" class="btn btn-success">
+              Actualizar
+            </button>
+            <button id="cancelButton" type="button" class="btn btn-outline-secondary">
+              Cancelar
+            </button>
+            <button id="deleteButton" type="button" class="btn btn-outline-danger">
+              Eliminar fila
+            </button>
+          </div>
+          <div id="statusMessage" class="form-text mt-2"></div>
+        </div>
+      </div>
+
+      <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="overlay-box">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div id="loadingMessage" class="small mt-2 fw-semibold text-primary">
+            Procesando…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const FIELD_SECTIONS = JSON.parse(<?!= JSON.stringify(fieldSectionsJson) ?>);
+      const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
+      const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
+      const CUSTOM_OPTION_VALUE = '__custom_option__';
+      const CUSTOM_OPTION_REMOVE = '__remove_option__';
+      const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
+
+      const state = {
+        rowNumber: null,
+        values: {},
+        baseline: {},
+        loading: false,
+        options: {},
+        contactDirectory: {},
+        permissions: {
+          canEdit: true,
+          canSync: true,
+          canDelete: true,
+        },
+      };
+
+      const elements = {
+        alertContainer: document.getElementById('alertContainer'),
+        summaryCard: document.getElementById('summaryCard'),
+        summaryTitle: document.getElementById('rowSummaryTitle'),
+        summarySubtitle: document.getElementById('rowSummarySubtitle'),
+        summaryBadge: document.getElementById('rowSummaryBadge'),
+        summaryDescription: document.getElementById('rowSummaryDescription'),
+        summaryStatuses: document.getElementById('rowSummaryStatuses'),
+        formCard: document.getElementById('formCard'),
+        actionsCard: document.getElementById('actionsCard'),
+        tabs: document.getElementById('sectionTabs'),
+        tabContent: document.getElementById('sectionTabContent'),
+        reloadButton: document.getElementById('reloadButton'),
+        dictionaryButton: document.getElementById('dictionaryButton'),
+        acceptButton: document.getElementById('acceptButton'),
+        updateButton: document.getElementById('updateButton'),
+        cancelButton: document.getElementById('cancelButton'),
+        deleteButton: document.getElementById('deleteButton'),
+        statusMessage: document.getElementById('statusMessage'),
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loadingMessage: document.getElementById('loadingMessage'),
+      };
+
+      const tabInstances = {};
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.title = 'Gestión de Invitaciones';
+        buildTabs();
+        initializeStaticOptions();
+        attachEventHandlers();
+        loadContext();
+      });
+
+      function buildTabs() {
+        elements.tabs.innerHTML = '';
+        elements.tabContent.innerHTML = '';
+        FIELD_SECTIONS.forEach((section, index) => {
+          const isActive = index === 0;
+          const tabId = `tab-${section.id}`;
+          const panelId = `panel-${section.id}`;
+
+          const navItem = document.createElement('li');
+          navItem.className = 'nav-item';
+          navItem.role = 'presentation';
+
+          const button = document.createElement('button');
+          button.className = `nav-link${isActive ? ' active' : ''}`;
+          button.id = tabId;
+          button.type = 'button';
+          button.setAttribute('data-bs-toggle', 'pill');
+          button.setAttribute('data-bs-target', `#${panelId}`);
+          button.setAttribute('role', 'tab');
+          button.setAttribute('aria-controls', panelId);
+          button.setAttribute('aria-selected', String(isActive));
+          button.textContent = section.title;
+
+          navItem.appendChild(button);
+          elements.tabs.appendChild(navItem);
+
+          const pane = document.createElement('div');
+          pane.className = `tab-pane fade${isActive ? ' show active' : ''}`;
+          pane.id = panelId;
+          pane.setAttribute('role', 'tabpanel');
+          pane.setAttribute('aria-labelledby', tabId);
+
+          if (section.description) {
+            const description = document.createElement('p');
+            description.className = 'small text-muted mb-3';
+            description.textContent = section.description;
+            pane.appendChild(description);
+          }
+
+          const row = document.createElement('div');
+          row.className = 'row g-3';
+          row.dataset.sectionId = section.id;
+          const groupContainers = {};
+
+          section.fields.forEach((field) => {
+            if (field.hidden) {
+              return;
+            }
+            const fieldElement = createFieldElement(field);
+            if (field.group) {
+              const groupRow = ensureGroupContainer(row, groupContainers, field);
+              groupRow.appendChild(fieldElement);
+            } else {
+              row.appendChild(fieldElement);
+            }
+          });
+
+          pane.appendChild(row);
+          elements.tabContent.appendChild(pane);
+        });
+      }
+
+      function ensureGroupContainer(sectionRow, cache, field) {
+        const groupId = field.group;
+        if (cache[groupId]) {
+          return cache[groupId];
+        }
+        const wrapper = document.createElement('div');
+        wrapper.className = 'col-12';
+        wrapper.dataset.group = groupId;
+
+        const card = document.createElement('div');
+        card.className = 'field-group-card p-3 h-100';
+
+        const title = document.createElement('div');
+        title.className = 'group-title';
+        title.textContent = field.groupLabel || field.label || groupId;
+        card.appendChild(title);
+
+        if (field.groupDescription) {
+          const description = document.createElement('div');
+          description.className = 'group-description mb-2';
+          description.textContent = field.groupDescription;
+          card.appendChild(description);
+        }
+
+        const innerRow = document.createElement('div');
+        innerRow.className = 'row g-3 mt-1';
+        card.appendChild(innerRow);
+
+        wrapper.appendChild(card);
+        sectionRow.appendChild(wrapper);
+        cache[groupId] = innerRow;
+        return innerRow;
+      }
+
+      function resolveColumnClass(field) {
+        if (field.columnClass) {
+          return field.columnClass;
+        }
+        if (field.width === 12) {
+          return 'col-12';
+        }
+        if (field.width === 4) {
+          return 'col-12 col-md-6 col-xl-4';
+        }
+        if (field.width === 3) {
+          return 'col-12 col-md-4';
+        }
+        return 'col-12 col-lg-6';
+      }
+
+      function createFieldElement(field) {
+        const columnClass = resolveColumnClass(field);
+        const wrapper = document.createElement('div');
+        wrapper.className = columnClass;
+        wrapper.dataset.alias = field.alias;
+        wrapper.dataset.type = field.valueType;
+        if (field.palette) {
+          wrapper.dataset.palette = 'true';
+        }
+
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.setAttribute('for', `field-${field.alias}`);
+        label.textContent = field.label;
+        if (field.required) {
+          const requiredBadge = document.createElement('span');
+          requiredBadge.className = 'badge bg-danger-subtle text-danger-emphasis ms-2 align-middle';
+          requiredBadge.textContent = 'Requerido';
+          label.appendChild(requiredBadge);
+        }
+
+        wrapper.appendChild(label);
+
+        let control;
+        switch (field.valueType) {
+          case 'textarea':
+            control = document.createElement('textarea');
+            control.className = 'form-control';
+            control.rows = field.rows || 3;
+            break;
+          case 'date':
+            control = document.createElement('input');
+            control.type = 'date';
+            control.className = 'form-control';
+            break;
+          case 'time':
+            control = document.createElement('input');
+            control.type = 'time';
+            control.className = 'form-control';
+            break;
+          case 'number':
+            control = document.createElement('input');
+            control.type = 'number';
+            control.className = 'form-control';
+            control.step = 'any';
+            break;
+          case 'select':
+            control = document.createElement('select');
+            control.className = 'form-select';
+            if (field.allowCustom) {
+              control.dataset.allowCustom = 'true';
+            }
+            break;
+          case 'boolean':
+            control = document.createElement('select');
+            control.className = 'form-select';
+            control.innerHTML = `
+              <option value="">--</option>
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            `;
+            break;
+          case 'link':
+            control = createLinkControl(field.alias);
+            break;
+          default:
+            control = document.createElement('input');
+            control.type = 'text';
+            control.className = 'form-control';
+            break;
+        }
+
+        if (field.valueType !== 'link') {
+          control.id = `field-${field.alias}`;
+          control.dataset.alias = field.alias;
+          control.dataset.type = field.valueType;
+          if (field.placeholder) {
+            control.placeholder = field.placeholder;
+          }
+          if (field.readOnly) {
+            control.readOnly = true;
+            control.tabIndex = -1;
+          }
+          wrapper.appendChild(control);
+        } else {
+          wrapper.appendChild(control);
+        }
+
+        if (field.readOnly && field.valueType === 'select') {
+          control.disabled = true;
+        }
+
+        if (field.helper) {
+          const helper = document.createElement('div');
+          helper.className = 'form-text';
+          helper.textContent = field.helper;
+          wrapper.appendChild(helper);
+        }
+
+        if (field.palette) {
+          const chip = document.createElement('div');
+          chip.className = 'field-option-chip';
+          chip.dataset.role = 'option-chip';
+          const dot = document.createElement('span');
+          dot.className = 'color-dot';
+          const text = document.createElement('span');
+          text.dataset.role = 'option-chip-label';
+          text.textContent = 'Sin selección';
+          chip.appendChild(dot);
+          chip.appendChild(text);
+          wrapper.appendChild(chip);
+        }
+
+        return wrapper;
+      }
+
+      function createLinkControl(alias) {
+        const container = document.createElement('div');
+        container.className = 'd-flex flex-column gap-2';
+
+        const urlGroup = document.createElement('div');
+        urlGroup.className = 'input-group';
+
+        const urlLabel = document.createElement('span');
+        urlLabel.className = 'input-group-text';
+        urlLabel.textContent = 'URL';
+        urlGroup.appendChild(urlLabel);
+
+        const urlInput = document.createElement('input');
+        urlInput.type = 'url';
+        urlInput.className = 'form-control';
+        urlInput.placeholder = 'https://…';
+        urlInput.dataset.alias = alias;
+        urlInput.dataset.role = 'link-url';
+        urlGroup.appendChild(urlInput);
+
+        const openButton = document.createElement('button');
+        openButton.type = 'button';
+        openButton.className = 'btn btn-outline-secondary';
+        openButton.dataset.alias = alias;
+        openButton.dataset.role = 'link-open';
+        openButton.textContent = 'Abrir';
+        urlGroup.appendChild(openButton);
+
+        const textGroup = document.createElement('div');
+        textGroup.className = 'input-group';
+
+        const textLabel = document.createElement('span');
+        textLabel.className = 'input-group-text';
+        textLabel.textContent = 'Texto';
+        textGroup.appendChild(textLabel);
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'form-control';
+        textInput.placeholder = 'Texto opcional';
+        textInput.dataset.alias = alias;
+        textInput.dataset.role = 'link-text';
+        textGroup.appendChild(textInput);
+
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'btn btn-outline-secondary';
+        clearButton.dataset.alias = alias;
+        clearButton.dataset.role = 'link-clear';
+        clearButton.textContent = 'Limpiar';
+        textGroup.appendChild(clearButton);
+
+        container.appendChild(urlGroup);
+        container.appendChild(textGroup);
+        return container;
+      }
+
+      function buildFieldLookup(sections) {
+        const lookup = {};
+        sections.forEach((section) => {
+          section.fields.forEach((field) => {
+            lookup[field.alias] = field;
+          });
+        });
+        return lookup;
+      }
+
+      function initializeStaticOptions() {
+        Object.keys(FIELD_LOOKUP).forEach((alias) => {
+          const field = FIELD_LOOKUP[alias];
+          if (field.valueType !== 'select') {
+            return;
+          }
+          const staticOptions = normalizeFieldOptions(field.options || []);
+          if (!state.options[alias]) {
+            state.options[alias] = staticOptions.slice();
+          } else {
+            mergeOptions(alias, staticOptions);
+          }
+        });
+      }
+
+      function normalizeFieldOptions(options) {
+        if (!Array.isArray(options)) {
+          return [];
+        }
+        return options
+          .map((option) => {
+            if (option === null || option === undefined) {
+              return null;
+            }
+            if (typeof option === 'string' || typeof option === 'number') {
+              const value = String(option).trim();
+              if (!value) {
+                return null;
+              }
+              return { value, label: value };
+            }
+            if (typeof option === 'object') {
+              const rawValue = option.value !== undefined && option.value !== null ? String(option.value).trim() : '';
+              if (!rawValue) {
+                return null;
+              }
+              const label = option.label !== undefined && option.label !== null && option.label !== '' ? String(option.label) : rawValue;
+              return { value: rawValue, label: label };
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      function mergeOptions(alias, newOptions) {
+        if (!Array.isArray(newOptions) || newOptions.length === 0) {
+          return;
+        }
+        if (!state.options[alias]) {
+          state.options[alias] = [];
+        }
+        const existing = state.options[alias];
+        const seen = new Set(existing.map((option) => option.value.toLowerCase()));
+        newOptions.forEach((option) => {
+          const key = option.value.toLowerCase();
+          if (!seen.has(key)) {
+            existing.push({ value: option.value, label: option.label });
+            seen.add(key);
+          }
+        });
+      }
+
+      function sortOptions(alias) {
+        if (!state.options[alias]) {
+          return;
+        }
+        const field = FIELD_LOOKUP[alias];
+        const staticOptions = normalizeFieldOptions(field && field.options ? field.options : []);
+        const staticOrder = new Map();
+        staticOptions.forEach((option, index) => {
+          staticOrder.set(option.value.toLowerCase(), index);
+        });
+        state.options[alias].sort((a, b) => {
+          const aKey = a.value.toLowerCase();
+          const bKey = b.value.toLowerCase();
+          const aIndex = staticOrder.has(aKey) ? staticOrder.get(aKey) : Number.POSITIVE_INFINITY;
+          const bIndex = staticOrder.has(bKey) ? staticOrder.get(bKey) : Number.POSITIVE_INFINITY;
+          if (aIndex !== bIndex) {
+            return aIndex - bIndex;
+          }
+          if (aIndex !== Number.POSITIVE_INFINITY) {
+            return 0;
+          }
+          const aLabel = a.label.toLowerCase();
+          const bLabel = b.label.toLowerCase();
+          if (aLabel < bLabel) {
+            return -1;
+          }
+          if (aLabel > bLabel) {
+            return 1;
+          }
+          return 0;
+        });
+      }
+
+      function getOptionsForField(alias) {
+        if (!state.options[alias]) {
+          state.options[alias] = [];
+        }
+        return state.options[alias];
+      }
+
+      function populateSelectElement(select, options, field) {
+        const placeholderText = field.placeholder || 'Selecciona una opción…';
+        const previousValue = select.value;
+        select.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = placeholderText;
+        select.appendChild(placeholder);
+
+        options.forEach((option) => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.value;
+          optionElement.textContent = option.label;
+          select.appendChild(optionElement);
+        });
+
+        if (field.allowCustom) {
+          const removeOption = document.createElement('option');
+          removeOption.value = CUSTOM_OPTION_REMOVE;
+          removeOption.textContent = '🗑️ Eliminar valor…';
+          select.appendChild(removeOption);
+
+          const customOption = document.createElement('option');
+          customOption.value = CUSTOM_OPTION_VALUE;
+          customOption.textContent = '➕ Agregar nuevo valor…';
+          select.appendChild(customOption);
+        }
+
+        if (previousValue) {
+          select.value = previousValue;
+        }
+      }
+
+      function addCustomOption(alias, value) {
+        const trimmed = value ? value.trim() : '';
+        if (!trimmed) {
+          return;
+        }
+        mergeOptions(alias, [{ value: trimmed, label: trimmed }]);
+        sortOptions(alias);
+      }
+
+      function renderSelectField(field) {
+        const alias = field.alias;
+        const container = elements.formCard.querySelector(`[data-alias="${alias}"]`);
+        if (!container) {
+          return;
+        }
+        const select = container.querySelector('select');
+        if (!select) {
+          return;
+        }
+        const options = getOptionsForField(alias);
+        populateSelectElement(select, options, field);
+        const rawValue = state.values[alias];
+        const stringValue = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+        if (stringValue && !options.some((option) => option.value === stringValue)) {
+          addCustomOption(alias, stringValue);
+          populateSelectElement(select, getOptionsForField(alias), field);
+        }
+        select.value = stringValue;
+        if (select.dataset.allowCustom === 'true') {
+          select.dataset.previousValue = select.value || '';
+        }
+        updateOptionChip(alias);
+      }
+
+      function applyDropdownOptions(optionMap) {
+        if (!optionMap) {
+          return;
+        }
+        Object.keys(optionMap).forEach((alias) => {
+          const field = FIELD_LOOKUP[alias];
+          if (!field || field.valueType !== 'select') {
+            return;
+          }
+          const normalized = normalizeFieldOptions(optionMap[alias]);
+          mergeOptions(alias, normalized);
+          sortOptions(alias);
+        });
+      }
+
+      function normalizePermissions(permissions) {
+        if (!permissions) {
+          return { canEdit: true, canSync: true, canDelete: true, role: '' };
+        }
+        return {
+          canEdit: permissions.canEdit !== false,
+          canSync: permissions.canSync !== false,
+          canDelete: permissions.canDelete !== false,
+          role: permissions.role || '',
+        };
+      }
+
+      function applyPermissions(permissions) {
+        const normalized = normalizePermissions(permissions);
+        state.permissions = normalized;
+        if (!elements.formCard) {
+          updateActionState();
+          return;
+        }
+        const canEdit = normalized.canEdit;
+        const editableInputs = elements.formCard.querySelectorAll('input, textarea, select');
+        editableInputs.forEach((input) => {
+          const role = input.dataset ? input.dataset.role : '';
+          if (role === 'link-open') {
+            input.disabled = false;
+            return;
+          }
+          if (role === 'link-clear') {
+            input.disabled = !canEdit;
+            return;
+          }
+          input.disabled = !canEdit;
+        });
+        const linkClearButtons = elements.formCard.querySelectorAll('button[data-role="link-clear"]');
+        linkClearButtons.forEach((button) => {
+          button.disabled = !canEdit;
+        });
+        updateActionState();
+      }
+
+      function attachEventHandlers() {
+        elements.reloadButton.addEventListener('click', () => loadContext());
+        elements.dictionaryButton.addEventListener('click', openDictionary);
+        elements.acceptButton.addEventListener('click', () => submitAction('accept'));
+        elements.updateButton.addEventListener('click', () => submitAction('save'));
+        elements.cancelButton.addEventListener('click', resetFormToBaseline);
+        elements.deleteButton.addEventListener('click', handleDelete);
+
+        elements.formCard.addEventListener('input', handleFieldInput);
+        elements.formCard.addEventListener('change', handleFieldInput);
+        elements.formCard.addEventListener('focusin', handleFieldFocus);
+        elements.formCard.addEventListener('click', handleLinkButtons);
+      }
+
+      function handleFieldInput(event) {
+        const target = event.target;
+        if (!target || !target.dataset) {
+          return;
+        }
+        const alias = target.dataset.alias;
+        if (!alias) {
+          return;
+        }
+        const type = target.dataset.type;
+        const role = target.dataset.role;
+
+        if (role === 'link-url' || role === 'link-text') {
+          updateLinkValue(alias);
+          return;
+        }
+
+        let value = target.value;
+        if (type === 'select') {
+          if (target.dataset.allowCustom === 'true') {
+            if (value === CUSTOM_OPTION_REMOVE) {
+              handleRemoveOption(target, alias);
+              return;
+            }
+            if (value === CUSTOM_OPTION_VALUE) {
+              handleCustomSelectValue(target, alias);
+              return;
+            }
+          }
+          value = value === undefined || value === null ? '' : String(value);
+        }
+        if (type === 'boolean') {
+          if (value === '') {
+            value = null;
+          } else {
+            value = value === 'true';
+          }
+        }
+        setFieldValue(alias, value);
+        maybeApplyContactAutoFill(alias, value);
+        if (['moneda', 'monto_ofertado', 'tipo_cambio'].includes(alias)) {
+          applyKpiFormulas();
+        }
+      }
+
+      function handleFieldFocus(event) {
+        const target = event.target;
+        if (!target || !target.dataset) {
+          return;
+        }
+        if (target.matches('select[data-allow-custom="true"]')) {
+          target.dataset.previousValue = target.value || '';
+        }
+      }
+
+      function handleCustomSelectValue(select, alias) {
+        const field = FIELD_LOOKUP[alias];
+        const label = field && field.label ? field.label : alias;
+        const response = prompt(`Nuevo valor para "${label}"`);
+        if (response === null) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        const trimmed = response.trim();
+        if (!trimmed) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        addCustomOption(alias, trimmed);
+        if (field) {
+          renderSelectField(field);
+        }
+        select.value = trimmed;
+        setFieldValue(alias, trimmed);
+      }
+
+      function handleLinkButtons(event) {
+        const target = event.target;
+        if (!target.dataset || !target.dataset.role) {
+          return;
+        }
+        const role = target.dataset.role;
+        const alias = target.dataset.alias;
+        if (!alias) {
+          return;
+        }
+        if (role === 'link-open') {
+          event.preventDefault();
+          const value = state.values[alias] || { url: '', text: '' };
+          if (value.url) {
+            window.open(value.url, '_blank');
+          }
+        } else if (role === 'link-clear') {
+          event.preventDefault();
+          state.values[alias] = { url: '', text: '' };
+          renderLinkField(alias);
+          updateActionState();
+        }
+      }
+
+      function updateLinkValue(alias) {
+        const urlInput = elements.formCard.querySelector(`input[data-role="link-url"][data-alias="${alias}"]`);
+        const textInput = elements.formCard.querySelector(`input[data-role="link-text"][data-alias="${alias}"]`);
+        const url = urlInput ? urlInput.value.trim() : '';
+        const text = textInput ? textInput.value.trim() : '';
+        state.values[alias] = { url, text };
+        toggleLinkButtons(alias, url);
+        updateActionState();
+      }
+
+      function setFieldValue(alias, value) {
+        if (typeof value === 'string') {
+          state.values[alias] = value;
+        } else {
+          state.values[alias] = value === undefined ? '' : value;
+        }
+        updateOptionChip(alias);
+        updateActionState();
+      }
+
+      function toggleLinkButtons(alias, hasUrl) {
+        const openButton = elements.formCard.querySelector(`button[data-role="link-open"][data-alias="${alias}"]`);
+        if (openButton) {
+          openButton.disabled = !hasUrl;
+        }
+      }
+
+      function openDictionary() {
+        setLoading(true, `Abriendo "${DICTIONARY_SHEET_NAME}"…`);
+        google.script.run
+          .withSuccessHandler(() => {
+            setLoading(false);
+            setStatus(`Se abrió la hoja "${DICTIONARY_SHEET_NAME}" en el libro.`, 'success');
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .openColumnDictionarySheet();
+      }
+
+      function loadContext() {
+        setLoading(true, 'Cargando información de la hoja…');
+        google.script.run
+          .withSuccessHandler((context) => {
+            setLoading(false);
+            processContext(context);
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .getSidebarContext();
+      }
+
+      function processContext(context) {
+        clearStatus();
+        hideAlert();
+        applyPermissions(context && context.permissions ? context.permissions : null);
+        if (context && context.contactDirectory) {
+          state.contactDirectory = context.contactDirectory;
+        } else {
+          state.contactDirectory = {};
+        }
+        state.options = {};
+        initializeStaticOptions();
+        if (context && context.dropdownOptions) {
+          applyDropdownOptions(context.dropdownOptions);
+        }
+        const active = context && context.activeInvitation ? context.activeInvitation : null;
+        if (!active) {
+          showAlert('danger', 'No se pudo obtener la información de la hoja.');
+          resetFormData();
+          showFormCards(true);
+          return;
+        }
+
+        if (!active.rowNumber) {
+          resetFormData();
+          showFormCards(true);
+          if (active.sheetName && active.sheetName !== active.expectedSheetName) {
+            showAlert(
+              'warning',
+              `Abre la hoja "${active.expectedSheetName}" para gestionar las invitaciones. Actualmente estás en "${active.sheetName}".`
+            );
+          } else {
+            showAlert('info', 'Selecciona una fila de datos (por debajo del encabezado) para trabajar desde el panel.');
+          }
+          setStatus('Formulario en modo espera hasta que selecciones una fila.', 'info');
+          return;
+        }
+
+        showFormCards(true);
+        hideAlert();
+        applyData(active.data || {}, active.rowNumber);
+      }
+
+      function applyData(data, rowNumber) {
+        state.rowNumber = rowNumber;
+        state.baseline = {};
+        state.values = {};
+
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const incoming = Object.prototype.hasOwnProperty.call(data, alias) ? data[alias] : '';
+            if (field.valueType === 'boolean') {
+              const value = incoming === true ? true : incoming === false ? false : null;
+              state.baseline[alias] = value;
+              state.values[alias] = value;
+            } else if (field.valueType === 'link') {
+              const value = {
+                url: incoming && incoming.url ? String(incoming.url) : '',
+                text: incoming && incoming.text ? String(incoming.text) : '',
+              };
+              state.baseline[alias] = { ...value };
+              state.values[alias] = { ...value };
+            } else {
+              const stringValue = incoming === null || incoming === undefined ? '' : String(incoming);
+              state.baseline[alias] = stringValue;
+              state.values[alias] = stringValue;
+            }
+          });
+        });
+
+        renderAllFields();
+        updateSummaryCard(data || {});
+        if (state.permissions && state.permissions.canEdit === false) {
+          setStatus('Panel en modo lectura. Solicita acceso en la hoja de permisos.', 'warning');
+        } else {
+          clearStatus();
+        }
+        updateActionState();
+      }
+
+      function resetFormData() {
+        state.rowNumber = null;
+        state.baseline = {};
+        state.values = {};
+
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            if (field.valueType === 'boolean') {
+              state.baseline[alias] = null;
+              state.values[alias] = null;
+            } else if (field.valueType === 'link') {
+              const emptyLink = { url: '', text: '' };
+              state.baseline[alias] = { ...emptyLink };
+              state.values[alias] = { ...emptyLink };
+            } else {
+              state.baseline[alias] = '';
+              state.values[alias] = '';
+            }
+          });
+        });
+
+        renderAllFields();
+        updateSummaryCard({});
+        updateActionState();
+      }
+
+      function renderAllFields() {
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            if (field.hidden) {
+              return;
+            }
+            if (field.valueType === 'link') {
+              renderLinkField(field.alias);
+            } else if (field.valueType === 'select') {
+              renderSelectField(field);
+            } else {
+              renderStandardField(field);
+            }
+          });
+        });
+      }
+
+      function renderStandardField(field) {
+        const alias = field.alias;
+        const container = elements.formCard.querySelector(`[data-alias="${alias}"]`);
+        if (!container) {
+          return;
+        }
+        const input = container.querySelector('input, textarea, select');
+        if (!input) {
+          return;
+        }
+        const value = state.values[alias];
+        if (field.valueType === 'boolean') {
+          input.value = value === null ? '' : value ? 'true' : 'false';
+        } else {
+          input.value = value === undefined || value === null ? '' : String(value);
+        }
+        updateOptionChip(alias);
+      }
+
+      function renderLinkField(alias) {
+        const urlInput = elements.formCard.querySelector(`input[data-role="link-url"][data-alias="${alias}"]`);
+        const textInput = elements.formCard.querySelector(`input[data-role="link-text"][data-alias="${alias}"]`);
+        const value = state.values[alias] || { url: '', text: '' };
+        if (urlInput) {
+          urlInput.value = value.url || '';
+        }
+        if (textInput) {
+          textInput.value = value.text || '';
+        }
+        toggleLinkButtons(alias, !!value.url);
+      }
+
+      function updateOptionChip(alias) {
+        const field = FIELD_LOOKUP[alias];
+        if (!field || !field.palette) {
+          return;
+        }
+        const wrapper = elements.formCard.querySelector(
+          `[data-alias="${alias}"][data-palette="true"]`
+        );
+        if (!wrapper) {
+          return;
+        }
+        const chip = wrapper.querySelector('[data-role="option-chip"]');
+        if (!chip) {
+          return;
+        }
+        const label = chip.querySelector('[data-role="option-chip-label"]');
+        const dot = chip.querySelector('.color-dot');
+        const currentValue = state.values[alias] || '';
+        if (!currentValue) {
+          chip.style.backgroundColor = 'rgba(99, 102, 241, 0.08)';
+          chip.style.color = '#312e81';
+          if (dot) {
+            dot.style.backgroundColor = '#6366f1';
+          }
+          if (label) {
+            label.textContent = 'Sin selección';
+          }
+          return;
+        }
+        const palette = field.palette || {};
+        const normalized = currentValue.toString().trim().toLowerCase();
+        const color = palette[normalized] || '#4338ca';
+        chip.style.backgroundColor = color + '1a';
+        chip.style.color = color;
+        if (dot) {
+          dot.style.backgroundColor = color;
+        }
+        if (label) {
+          label.textContent = currentValue;
+        }
+      }
+
+      function applyDependentFieldValue(alias, value, options = {}) {
+        const field = FIELD_LOOKUP[alias];
+        if (!field) {
+          return;
+        }
+        let storedValue = value;
+        if (field.valueType === 'boolean') {
+          if (value === '' || value === null || value === undefined) {
+            storedValue = null;
+          } else if (value === true || value === false) {
+            storedValue = value;
+          } else {
+            storedValue = String(value).toLowerCase() === 'true';
+          }
+        } else if (field.valueType === 'link') {
+          storedValue = value && typeof value === 'object' ? { ...value } : { url: '', text: '' };
+        } else if (value === null || value === undefined) {
+          storedValue = '';
+        } else {
+          storedValue = String(value);
+        }
+
+        state.values[alias] = storedValue;
+
+        if (!field.hidden) {
+          if (field.valueType === 'link') {
+            renderLinkField(alias);
+          } else if (field.valueType === 'select') {
+            if (storedValue && storedValue !== '' && !getOptionsForField(alias).some((opt) => opt.value === storedValue)) {
+              addCustomOption(alias, storedValue);
+            }
+            renderSelectField(field);
+          } else {
+            renderStandardField(field);
+          }
+        }
+
+        if (!options.skipActionState) {
+          updateActionState();
+        }
+      }
+
+      function maybeApplyContactAutoFill(alias, value) {
+        const directory = state.contactDirectory || {};
+        if (!value) {
+          return;
+        }
+        const normalized = value.toString().trim().toLowerCase();
+        let entry = null;
+        if (alias === 'solicitante' && directory.solicitante) {
+          entry = directory.solicitante[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_solicitante', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_solicitante', entry.phone || '', { skipActionState: true });
+          }
+        } else if (alias === 'responsable_tecnico' && directory.responsable_tecnico) {
+          entry = directory.responsable_tecnico[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_responsable_tecnico', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_responsable_tecnico', entry.phone || '', { skipActionState: true });
+          }
+        } else if (alias === 'responsable_economico' && directory.responsable_economico) {
+          entry = directory.responsable_economico[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_responsable_economico', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_responsable_economico', entry.phone || '', { skipActionState: true });
+          }
+        }
+        if (entry) {
+          updateActionState();
+        }
+      }
+
+      function applyKpiFormulas() {
+        const moneda = (state.values.moneda || '').toString().trim().toUpperCase();
+        const montoRaw = state.values.monto_ofertado;
+        const tipoCambioRaw = state.values.tipo_cambio;
+        const monto =
+          montoRaw === null || montoRaw === undefined || montoRaw === '' ? NaN : Number(montoRaw);
+        let tipoCambio =
+          tipoCambioRaw === null || tipoCambioRaw === undefined || tipoCambioRaw === ''
+            ? NaN
+            : Number(tipoCambioRaw);
+        let monedaNormalizada = '';
+        let montoUsd = '';
+        const formatTwoDecimals = (num) =>
+          Number.isFinite(num) ? (Math.round(num * 100) / 100).toFixed(2) : '';
+
+        if (!moneda) {
+          applyDependentFieldValue('moneda_normalizada_usd', '', { skipActionState: true });
+          applyDependentFieldValue('monto_ofertado_usd', '', { skipActionState: true });
+          updateActionState();
+          return;
+        }
+
+        const isUsd = ['USD', 'US$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES'].includes(moneda);
+        const isPen = ['PEN', 'SOL', 'SOLES', 'S/.', 'S/'].includes(moneda);
+
+        if (isUsd) {
+          monedaNormalizada = 'USD';
+          if (!Number.isFinite(tipoCambio) || tipoCambio === 0) {
+            tipoCambio = 1;
+            applyDependentFieldValue('tipo_cambio', '1', { skipActionState: true });
+          }
+          montoUsd = formatTwoDecimals(monto);
+        } else if (isPen) {
+          monedaNormalizada = 'USD';
+          if (Number.isFinite(monto) && Number.isFinite(tipoCambio) && tipoCambio !== 0) {
+            const calculado = monto * tipoCambio;
+            montoUsd = formatTwoDecimals(calculado);
+          } else {
+            montoUsd = '';
+          }
+        } else {
+          monedaNormalizada = moneda;
+          montoUsd = formatTwoDecimals(monto);
+        }
+
+        applyDependentFieldValue('moneda_normalizada_usd', monedaNormalizada, { skipActionState: true });
+        applyDependentFieldValue('monto_ofertado_usd', montoUsd, { skipActionState: true });
+        updateActionState();
+      }
+
+      function handleRemoveOption(select, alias) {
+        const field = FIELD_LOOKUP[alias];
+        const previous = select.dataset.previousValue || '';
+        const options = getOptionsForField(alias);
+        if (!options.length) {
+          select.value = previous;
+          return;
+        }
+        const availableList = options.map((option) => option.label).join('\n• ');
+        const promptMessage =
+          `¿Qué valor deseas eliminar de "${field.label}"?` +
+          '\n• ' +
+          availableList +
+          '\n\nSe borrará de la hoja actual.';
+        const response = prompt(promptMessage, previous || '');
+        if (response === null) {
+          select.value = previous;
+          return;
+        }
+        const trimmed = response.trim();
+        if (!trimmed) {
+          select.value = previous;
+          return;
+        }
+        const match = options.find((option) => option.value.toLowerCase() === trimmed.toLowerCase());
+        if (!match) {
+          showAlert('warning', `No se encontró el valor "${trimmed}" en la lista.`);
+          select.value = previous;
+          return;
+        }
+        const confirmed = confirm(
+          `Se eliminará "${match.label}" de todas las filas de la hoja. ¿Deseas continuar?`
+        );
+        if (!confirmed) {
+          select.value = previous;
+          return;
+        }
+        select.value = previous;
+        setLoading(true, 'Eliminando valor de la lista…');
+        google.script.run
+          .withSuccessHandler((result) => {
+            setLoading(false);
+            setStatus(
+              result && result.removed
+                ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
+                : `No se encontraron coincidencias para "${match.label}".`,
+              result && result.removed ? 'success' : 'warning'
+            );
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .removeDropdownValue({ alias, value: match.value });
+      }
+
+      function updateSummaryCard(data) {
+        const hasRow = !!state.rowNumber;
+        const title = data.cotizacion
+          ? `Cotización ${data.cotizacion}`
+          : data.descripcion
+          ? data.descripcion
+          : hasRow
+          ? `Fila ${state.rowNumber}`
+          : 'Formulario disponible';
+        elements.summaryTitle.textContent = title;
+
+        const subtitle = data.cliente
+          ? data.cliente
+          : data.orden_de_compra
+          ? `Orden de compra: ${data.orden_de_compra}`
+          : hasRow
+          ? 'Cliente no especificado'
+          : 'Selecciona una fila para cargar los datos.';
+        elements.summarySubtitle.textContent = subtitle;
+
+        const badgeText = data.orden_de_compra
+          ? `OC ${data.orden_de_compra}`
+          : data.semana_iso
+          ? `Semana ${data.semana_iso}`
+          : hasRow && state.rowNumber
+          ? `Fila ${state.rowNumber}`
+          : 'Sin fila seleccionada';
+        elements.summaryBadge.textContent = badgeText;
+
+        elements.summaryDescription.textContent = data.descripcion
+          ? data.descripcion
+          : hasRow
+          ? 'Sin descripción registrada.'
+          : 'Utiliza los botones superiores para actualizar la fila que selecciones en la hoja.';
+
+        elements.summaryStatuses.innerHTML = '';
+        const statuses = [
+          { label: 'Servicio', value: data.tipo_servicio, tone: 'palette' },
+          { label: 'Cotización', value: data.estado_cotizacion, tone: 'primary' },
+          { label: 'Propuesta', value: data.estado_propuesta, tone: 'success' },
+          { label: 'Pipeline', value: data.estado_pipeline, tone: 'warning' },
+        ];
+        statuses.forEach((status) => {
+          if (!status.value) {
+            return;
+          }
+          const badge = document.createElement('span');
+          let toneClass = 'badge-soft-primary';
+          if (status.tone === 'success') {
+            toneClass = 'badge-soft-success';
+          } else if (status.tone === 'warning') {
+            toneClass = 'badge-soft-warning';
+          }
+          if (status.tone === 'palette') {
+            const palette = FIELD_LOOKUP.tipo_servicio && FIELD_LOOKUP.tipo_servicio.palette;
+            const normalized = status.value.toString().trim().toLowerCase();
+            const color = palette ? palette[normalized] : null;
+            badge.className = 'status-badge';
+            badge.style.backgroundColor = color ? color + '1a' : 'rgba(99, 102, 241, 0.12)';
+            badge.style.color = color || '#4338ca';
+          } else {
+            badge.className = `status-badge ${toneClass}`;
+          }
+          badge.textContent = `${status.label}: ${status.value}`;
+          elements.summaryStatuses.appendChild(badge);
+        });
+      }
+
+      function showFormCards(visible) {
+        const method = visible ? 'remove' : 'add';
+        elements.summaryCard.classList[method]('d-none');
+        elements.formCard.classList[method]('d-none');
+        elements.actionsCard.classList[method]('d-none');
+      }
+
+      function isDirty() {
+        return FIELD_SECTIONS.some((section) =>
+          section.fields.some((field) => !valuesAreEqual(state.values[field.alias], state.baseline[field.alias]))
+        );
+      }
+
+      function valuesAreEqual(a, b) {
+        if (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
+          return JSON.stringify(a) === JSON.stringify(b);
+        }
+        return a === b;
+      }
+
+      function updateActionState() {
+        const hasRow = !!state.rowNumber;
+        const dirty = hasRow && isDirty();
+        const disabled = !hasRow || state.loading;
+        const canEdit = state.permissions && state.permissions.canEdit !== false;
+        const canSync = state.permissions && state.permissions.canSync !== false;
+        const canDelete = state.permissions && state.permissions.canDelete !== false;
+
+        elements.acceptButton.disabled = disabled || !canSync;
+        elements.updateButton.disabled = disabled || !dirty || !canEdit;
+        elements.cancelButton.disabled = disabled || !dirty;
+        elements.deleteButton.disabled = disabled || !canDelete;
+        elements.reloadButton.disabled = state.loading;
+        if (elements.dictionaryButton) {
+          elements.dictionaryButton.disabled = state.loading;
+        }
+      }
+
+      function buildUpdatesPayload() {
+        const updates = {};
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const value = state.values[alias];
+            if (field.valueType === 'boolean') {
+              updates[alias] = value === null ? '' : value;
+            } else {
+              updates[alias] = value === undefined ? '' : value;
+            }
+          });
+        });
+        return updates;
+      }
+
+      function submitAction(mode) {
+        if (!state.rowNumber) {
+          return;
+        }
+        if (mode === 'accept' && state.permissions && state.permissions.canSync === false) {
+          setStatus('No tienes permisos para sincronizar con Supabase.', 'error');
+          return;
+        }
+        if (mode !== 'accept' && state.permissions && state.permissions.canEdit === false) {
+          setStatus('No tienes permisos para actualizar esta invitación.', 'error');
+          return;
+        }
+        const updates = buildUpdatesPayload();
+        const request = { rowNumber: state.rowNumber, updates };
+        const isAccept = mode === 'accept';
+        setLoading(true, isAccept ? 'Sincronizando invitación…' : 'Guardando cambios…');
+
+        const runner = google.script.run
+          .withSuccessHandler((response) => {
+            setLoading(false);
+            if (response && response.data) {
+              applyData(response.data, response.rowNumber);
+            }
+            if (isAccept && response && typeof response.syncedRows === 'number') {
+              setStatus(`Sincronización exitosa: ${response.syncedRows} registro(s) enviados a Supabase.`, 'success');
+            } else {
+              setStatus('Cambios guardados correctamente.', 'success');
+            }
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          });
+
+        if (isAccept) {
+          runner.acceptInvitation(request);
+        } else {
+          runner.saveInvitation(request);
+        }
+      }
+
+      function resetFormToBaseline() {
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            const baselineValue = state.baseline[alias];
+            if (field.valueType === 'link') {
+              state.values[alias] = baselineValue ? { ...baselineValue } : { url: '', text: '' };
+            } else {
+              state.values[alias] = baselineValue;
+            }
+          });
+        });
+        renderAllFields();
+        clearStatus();
+        updateActionState();
+      }
+
+      function handleDelete() {
+        if (!state.rowNumber || state.loading) {
+          return;
+        }
+        if (state.permissions && state.permissions.canDelete === false) {
+          setStatus('Solo un administrador puede eliminar registros desde este panel.', 'error');
+          return;
+        }
+        const confirmed = confirm(
+          `¿Eliminar la fila ${state.rowNumber} de la hoja "${SHEET_NAME}"? Esta acción no se puede deshacer.`
+        );
+        if (!confirmed) {
+          return;
+        }
+        setLoading(true, 'Eliminando fila seleccionada…');
+        google.script.run
+          .withSuccessHandler(() => {
+            setLoading(false);
+            setStatus('Fila eliminada correctamente. Selecciona otra fila para continuar.', 'success');
+            state.rowNumber = null;
+            state.values = {};
+            state.baseline = {};
+            showFormCards(false);
+            updateActionState();
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .deleteInvitation({ rowNumber: state.rowNumber });
+      }
+
+      function setLoading(isLoading, message) {
+        state.loading = isLoading;
+        if (message) {
+          elements.loadingMessage.textContent = message;
+        }
+        elements.loadingOverlay.classList.toggle('d-none', !isLoading);
+        updateActionState();
+      }
+
+      function setStatus(message, tone) {
+        elements.statusMessage.textContent = message || '';
+        elements.statusMessage.className = 'form-text mt-2';
+        if (!message) {
+          return;
+        }
+        if (tone === 'success') {
+          elements.statusMessage.classList.add('text-success');
+        } else if (tone === 'error') {
+          elements.statusMessage.classList.add('text-danger');
+        } else if (tone === 'warning') {
+          elements.statusMessage.classList.add('text-warning');
+        } else {
+          elements.statusMessage.classList.add('text-muted');
+        }
+      }
+
+      function clearStatus() {
+        setStatus('', 'info');
+      }
+
+      function showAlert(tone, message) {
+        const toneClass =
+          tone === 'danger'
+            ? 'alert-danger'
+            : tone === 'warning'
+            ? 'alert-warning'
+            : tone === 'info'
+            ? 'alert-info'
+            : 'alert-secondary';
+        elements.alertContainer.innerHTML = `
+          <div class="alert ${toneClass}" role="alert">
+            ${message}
+          </div>
+        `;
+      }
+
+      function hideAlert() {
+        elements.alertContainer.innerHTML = '';
+      }
+
+      function showError(error) {
+        const message = error && error.message ? error.message : String(error);
+        setStatus(message, 'error');
+      }
+    </script>
+  </body>
+</html>
