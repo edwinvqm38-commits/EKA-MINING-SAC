@@ -608,14 +608,20 @@ function showSidebar() {
   const columnVisibility = getColumnVisibilityForEmail(permissions.email);
   const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
 
-  const template = HtmlService.createTemplateFromFile('Sidebar');
-  template.sheetName = getInvitationSheet().getName();
-  template.fieldSectionsJson = JSON.stringify(fieldSectionsForUser);
-  template.dictionarySheetName = COLUMN_DICTIONARY_SHEET_NAME;
-  template.permissionsSheetName = PERMISSIONS_SHEET_NAME;
-  template.columnPermissionSheetName = COLUMN_PERMISSIONS_SHEET_NAME; // <- IMPORTANTE
-  const htmlOutput = template.evaluate().setTitle(SIDEBAR_TITLE).setWidth(420);
-  SpreadsheetApp.getUi().showSidebar(htmlOutput);
+  const t = HtmlService.createTemplateFromFile('Sidebar');
+  t.sheetName = getInvitationSheet().getName();
+  t.fieldSectionsJson = JSON.stringify(fieldSectionsForUser);
+  t.dictionarySheetName = COLUMN_DICTIONARY_SHEET_NAME;
+  t.permissionsSheetName = PERMISSIONS_SHEET_NAME;
+  t.columnPermissionSheetName = COLUMN_PERMISSIONS_SHEET_NAME; // <- sin esto el HTML suele fallar
+
+  SpreadsheetApp.getUi()
+    .showSidebar(t.evaluate().setTitle(SIDEBAR_TITLE).setWidth(420));
+}
+
+function __debugSidebar() {
+  const data = getSidebarContext();  // si algo está mal, aquí lanzará el error
+  Logger.log(JSON.stringify(data, null, 2));
 }
 
 function getInvitationSheet() {
