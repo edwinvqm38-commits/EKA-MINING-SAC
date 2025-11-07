@@ -603,19 +603,18 @@ function showSidebar() {
   ensurePermissionsSheet();
   ensureColumnPermissionsSheet();
   ensureColumnDictionarySheet();
+
   const permissions = getCurrentUserPermissions();
   const columnVisibility = getColumnVisibilityForEmail(permissions.email);
   const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
+
   const template = HtmlService.createTemplateFromFile('Sidebar');
   template.sheetName = getInvitationSheet().getName();
   template.fieldSectionsJson = JSON.stringify(fieldSectionsForUser);
   template.dictionarySheetName = COLUMN_DICTIONARY_SHEET_NAME;
   template.permissionsSheetName = PERMISSIONS_SHEET_NAME;
-  template.columnPermissionSheetName = COLUMN_PERMISSIONS_SHEET_NAME;
-  const htmlOutput = template
-    .evaluate()
-    .setTitle(SIDEBAR_TITLE)
-    .setWidth(420);
+  template.columnPermissionSheetName = COLUMN_PERMISSIONS_SHEET_NAME; // <- IMPORTANTE
+  const htmlOutput = template.evaluate().setTitle(SIDEBAR_TITLE).setWidth(420);
   SpreadsheetApp.getUi().showSidebar(htmlOutput);
 }
 
