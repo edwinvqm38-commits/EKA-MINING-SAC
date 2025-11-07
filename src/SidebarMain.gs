@@ -1934,6 +1934,7 @@ function getSidebarContext() {
     permissions: permissions,
     dictionarySheetName: COLUMN_DICTIONARY_SHEET_NAME,
     permissionsSheetName: PERMISSIONS_SHEET_NAME,
+    columnPermissionSheetName: COLUMN_PERMISSIONS_SHEET_NAME,
   };
 }
 
