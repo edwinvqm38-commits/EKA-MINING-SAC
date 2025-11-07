@@ -4,6 +4,7 @@ const HEADER_ROW = 1;
 
 const TIPO_SERVICIO_OPTIONS = [
   'Cotización Formal',
+  'Cotización Simple',
   'Licitación',
   'Parada de Planta',
   'Adicional',
@@ -12,6 +13,7 @@ const TIPO_SERVICIO_OPTIONS = [
 
 const TIPO_SERVICIO_PALETTE = {
   'cotización formal': '#2563eb',
+  'cotización simple': '#0891b2',
   licitación: '#7c3aed',
   'parada de planta': '#dc2626',
   adicional: '#f97316',
@@ -1430,6 +1432,87 @@ function acceptInvitation(request) {
   return {
     rowNumber: saved.rowNumber,
     data: getRowData(saved.rowNumber, columnVisibility),
+    syncedRows: syncResult.syncedRows,
+  };
+}
+
+function deleteInvitation(request) {
+  assertUserCanDeleteInvitations();
+  const rowNumber = request && request.rowNumber;
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida para eliminar.');
+  }
+  const sheet = getInvitationSheet();
+  const lastRow = sheet.getLastRow();
+  if (rowNumber > lastRow) {
+    throw new Error('La fila ' + rowNumber + ' no existe en la hoja.');
+  }
+  sheet.deleteRow(rowNumber);
+  return {
+    deletedRow: rowNumber,
+  };
+}
+
+function listColumnMetadata() {
+  return FIELD_SECTIONS.reduce(function (acc, section) {
+    section.fields.forEach(function (field) {
+      acc.push({
+        alias: field.alias,
+        header: field.header,
+        section: section.id,
+      });
+    });
+    return acc;
+  }, []);
+}
+
+function buildHyperlinkFormula(url, text) {
+  const safeUrl = escapeFormulaValue(url);
+  const safeText = escapeFormulaValue(text);
+  return '=HYPERLINK("' + safeUrl + '","' + safeText + '")';
+}
+
+function parseHyperlinkFormula(formula) {
+  if (!formula || typeof formula !== 'string') {
+    return null;
+  }
+  const trimmed = formula.trim();
+  const match = /^=HYPERLINK\(\s*"((?:[^"]|"")*)"\s*(?:,\s*"((?:[^"]|"")*)"\s*)?\)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const url = match[1] ? match[1].replace(/""/g, '"') : '';
+  const text = match[2] ? match[2].replace(/""/g, '"') : '';
+  return { url: url, text: text };
+}
+
+function escapeFormulaValue(value) {
+  return String(value || '').replace(/"/g, '""');
+}
+
+function saveInvitation(request) {
+  assertUserCanEditInvitations();
+  const rowNumber = request && request.rowNumber;
+  const updates = (request && request.updates) || {};
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  ensureInvitationIdForRow(rowNumber);
+  applyKpiCalculations(rowNumber, updates);
+  const updated = updateInvitationRow(rowNumber, updates);
+  return {
+    rowNumber: rowNumber,
+    data: updated,
+  };
+}
+
+function acceptInvitation(request) {
+  assertUserCanSyncInvitations();
+  const saved = saveInvitation(request);
+  const syncResult = syncInvitationRow(saved.rowNumber);
+  return {
+    rowNumber: saved.rowNumber,
+    data: getRowData(saved.rowNumber),
     syncedRows: syncResult.syncedRows,
   };
 }
