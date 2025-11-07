@@ -154,6 +154,27 @@
         }
       }
 
+      .field-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.08);
+        color: #312e81;
+        margin-top: 0.4rem;
+      }
+
+      .field-option-chip .color-dot {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
       .form-control[readonly],
       .form-control[disabled],
       .form-select[disabled] {
@@ -401,6 +422,7 @@
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
       const PERMISSIONS_SHEET_NAME = <?!= JSON.stringify(permissionsSheetName) ?>;
+      const COLUMN_PERMISSION_SHEET_NAME = <?!= JSON.stringify(columnPermissionSheetName) ?>;
       const CUSTOM_OPTION_VALUE = '__custom_option__';
       const CUSTOM_OPTION_REMOVE = '__remove_option__';
       const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
@@ -561,59 +583,6 @@
         });
       }
 
-      function attachAdminTab() {
-        if (elements.adminTabItem || !elements.tabs || !elements.tabContent) {
-          return;
-        }
-        const template = elements.adminTabTemplate;
-        if (!template) {
-          return;
-        }
-        const navItem = document.createElement('li');
-        navItem.className = 'nav-item';
-        const button = document.createElement('button');
-        button.className = 'nav-link';
-        button.id = 'tab-admin';
-        button.type = 'button';
-        button.setAttribute('data-bs-toggle', 'pill');
-        button.setAttribute('data-bs-target', '#panel-admin');
-        button.setAttribute('role', 'tab');
-        button.setAttribute('aria-controls', 'panel-admin');
-        button.setAttribute('aria-selected', 'false');
-        button.textContent = 'Administración de accesos';
-        navItem.appendChild(button);
-        elements.tabs.appendChild(navItem);
-        elements.adminTabItem = navItem;
-        elements.adminTabButton = button;
-
-        if (!document.getElementById('panel-admin')) {
-          const fragment = template.content ? template.content.cloneNode(true) : null;
-          if (fragment) {
-            elements.tabContent.appendChild(fragment);
-          }
-        }
-        elements.adminTabPane = document.getElementById('panel-admin');
-      }
-
-      function refreshAdminElementReferences() {
-        elements.permissionsCard = document.getElementById('permissionsCard');
-        elements.permissionStatus = document.getElementById('permissionStatus');
-        elements.permissionUserForm = document.getElementById('permissionUserForm');
-        elements.permissionUserEmail = document.getElementById('permissionUserEmail');
-        elements.permissionUserPhone = document.getElementById('permissionUserPhone');
-        elements.permissionUserRole = document.getElementById('permissionUserRole');
-        elements.permissionUserStatus = document.getElementById('permissionUserStatus');
-        elements.permissionUserNotes = document.getElementById('permissionUserNotes');
-        elements.permissionUserSubmitButton = document.getElementById('permissionUserSubmitButton');
-        elements.permissionUserResetButton = document.getElementById('permissionUserResetButton');
-        elements.permissionUserTableBody = document.getElementById('permissionUserTableBody');
-        elements.openPermissionsSheetButton = document.getElementById('openPermissionsSheetButton');
-        elements.columnPermissionUser = document.getElementById('columnPermissionUser');
-        elements.columnPermissionList = document.getElementById('columnPermissionList');
-        elements.columnPermissionSaveButton = document.getElementById('columnPermissionSaveButton');
-        elements.adminTabPane = document.getElementById('panel-admin');
-      }
-
       function ensureGroupContainer(sectionRow, cache, field) {
         const groupId = field.group;
         if (cache[groupId]) {
@@ -670,6 +639,9 @@
         wrapper.className = columnClass;
         wrapper.dataset.alias = field.alias;
         wrapper.dataset.type = field.valueType;
+        if (field.palette) {
+          wrapper.dataset.palette = 'true';
+        }
 
         const label = document.createElement('label');
         label.className = 'form-label';
@@ -758,6 +730,20 @@
           helper.className = 'form-text';
           helper.textContent = field.helper;
           wrapper.appendChild(helper);
+        }
+
+        if (field.palette) {
+          const chip = document.createElement('div');
+          chip.className = 'field-option-chip';
+          chip.dataset.role = 'option-chip';
+          const dot = document.createElement('span');
+          dot.className = 'color-dot';
+          const text = document.createElement('span');
+          text.dataset.role = 'option-chip-label';
+          text.textContent = 'Sin selección';
+          chip.appendChild(dot);
+          chip.appendChild(text);
+          wrapper.appendChild(chip);
         }
 
         return wrapper;
@@ -2150,6 +2136,23 @@
             showError(error);
           })
           .openPermissionsSheet();
+      }
+
+      function handleOpenColumnPermissionsSheet() {
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        setPermissionAdminLoading(true, `Abriendo hoja "${COLUMN_PERMISSION_SHEET_NAME}"…`);
+        google.script.run
+          .withSuccessHandler(() => {
+            setPermissionAdminLoading(false);
+            setPermissionStatus(`Se abrió "${COLUMN_PERMISSION_SHEET_NAME}".`, 'success');
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .openColumnPermissionsSheet();
       }
 
       function handleColumnPermissionUserChange(event) {
