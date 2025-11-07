@@ -54,8 +54,32 @@ function ensurePermissionsSheet() {
 }
 
 function ensureColumnPermissionsSheet() {
-  return ensurePermissionsSheet();
+  const ss = SpreadsheetApp.getActive();
+  let sheet = ss.getSheetByName(COLUMN_PERMISSIONS_SHEET_NAME);
+  const metadata = listColumnMetadata();
+  const headers = ['Correo'].concat(metadata.map(function (item) { return item.header; }));
+  if (!sheet) { sheet = ss.insertSheet(COLUMN_PERMISSIONS_SHEET_NAME); }
+
+  const requiredColumns = headers.length;
+  if (sheet.getMaxColumns() < requiredColumns) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), requiredColumns - sheet.getMaxColumns());
+  }
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn > requiredColumns) {
+    sheet.deleteColumns(requiredColumns + 1, lastColumn - requiredColumns);
+  }
+  sheet.getRange(1, 1, 1, requiredColumns).setValues([headers]);
+  sheet.getRange(1, 1, 1, requiredColumns).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+
+  // checkboxes para todas las columnas de permisos (desde la 2)
+  const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  const maxRows = Math.max(sheet.getMaxRows() - 1, 1);
+  sheet.getRange(2, 2, maxRows, requiredColumns - 1).setDataValidation(rule);
+
+  return sheet;
 }
+
 
 function collectLegacyPermissionRows(metadata, totalColumns) {
   const ss = SpreadsheetApp.getActive();
