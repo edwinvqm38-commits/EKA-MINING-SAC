@@ -4,6 +4,7 @@ const HEADER_ROW = 1;
 
 const TIPO_SERVICIO_OPTIONS = [
   'Cotización Formal',
+  'Cotización Simple',
   'Licitación',
   'Parada de Planta',
   'Adicional',
@@ -12,6 +13,7 @@ const TIPO_SERVICIO_OPTIONS = [
 
 const TIPO_SERVICIO_PALETTE = {
   'cotización formal': '#2563eb',
+  'cotización simple': '#0891b2',
   licitación: '#7c3aed',
   'parada de planta': '#dc2626',
   adicional: '#f97316',
@@ -90,6 +92,7 @@ const FIELD_SECTIONS = [
         width: 6,
         options: TIPO_SERVICIO_OPTIONS,
         allowCustom: true,
+        helper: 'Selecciona un tipo existente o agrega uno nuevo.',
         palette: TIPO_SERVICIO_PALETTE,
       },
       {
@@ -100,6 +103,7 @@ const FIELD_SECTIONS = [
         width: 6,
         options: ESTADO_COTIZACION_OPTIONS,
         allowCustom: true,
+        helper: 'Etapa actual de la cotización según el flujo interno.',
       },
       {
         alias: 'estado_propuesta',
@@ -109,6 +113,7 @@ const FIELD_SECTIONS = [
         width: 6,
         options: ESTADO_PROPUESTA_OPTIONS,
         allowCustom: true,
+        helper: 'Selecciona el estado comercial de la propuesta enviada.',
       },
       {
         alias: 'estado_pipeline',
@@ -133,6 +138,7 @@ const FIELD_SECTIONS = [
         width: 6,
         optionsSource: 'cliente',
         allowCustom: true,
+        helper: 'Selecciona un cliente existente o agrega uno nuevo desde el desplegable.',
       },
       {
         alias: 'zona_trabajo',
@@ -142,6 +148,7 @@ const FIELD_SECTIONS = [
         width: 6,
         optionsSource: 'zona_trabajo',
         allowCustom: true,
+        helper: 'Define la zona o proyecto donde se ejecuta el servicio.',
       },
     ],
   },
@@ -624,7 +631,7 @@ function showSidebar() {
   const htmlOutput = template
     .evaluate()
     .setTitle(SIDEBAR_TITLE)
-    .setWidth(360);
+    .setWidth(420);
   SpreadsheetApp.getUi().showSidebar(htmlOutput);
 }
 
@@ -1391,69 +1398,141 @@ function syncActiveInvitation() {
 }
 
 function getSidebarContext() {
-  ensurePermissionsSheet();
-  ensureColumnPermissionsSheet();
-  ensureColumnDictionarySheet();
-
-  let permissions;
-  try {
-    permissions = getCurrentUserPermissions();
-  } catch (error) {
-    permissions = {
-      email: '',
-      phone: '',
-      role: PERMISSION_ROLE_VIEWER,
-      status: PERMISSIONS_STATUS_DISABLED,
-      enabled: false,
-      canEdit: false,
-      canSync: false,
-      canDelete: false,
-      canManageAccess: false,
-    };
-  }
-
-  let columnVisibility = null;
-  try {
-    columnVisibility = getColumnVisibilityForEmail(permissions.email);
-  } catch (error) {
-    columnVisibility = null;
-  }
-
-  let activeInvitation;
-  try {
-    activeInvitation = getActiveInvitation(columnVisibility);
-  } catch (error) {
-    const activeSheet = SpreadsheetApp.getActiveSheet();
-    activeInvitation = {
-      rowNumber: null,
-      sheetName: activeSheet ? activeSheet.getName() : '',
-      expectedSheetName: SHEET_NAME,
-      data: null,
-      error: error && error.message ? String(error.message) : 'Error al obtener la fila activa.',
-    };
-  }
-
-  let dropdownOptions = {};
-  try {
-    const optionMap = buildDropdownOptions();
-    dropdownOptions = filterOptionMapByVisibility(optionMap, columnVisibility);
-  } catch (error) {
-    dropdownOptions = {};
-  }
-
-  let contactDirectory = {};
-  try {
-    const directory = buildContactDirectory();
-    contactDirectory = filterContactDirectoryByVisibility(directory, columnVisibility);
-  } catch (error) {
-    contactDirectory = {};
-  }
-
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
   return {
+    fieldSections: fieldSectionsForUser,
+    activeInvitation: getActiveInvitation(columnVisibility),
+    sheetName: SHEET_NAME,
+    dropdownOptions: filterOptionMapByVisibility(buildDropdownOptions(), columnVisibility),
+    contactDirectory: filterContactDirectoryByVisibility(
+      buildContactDirectory(),
+      columnVisibility
+    ),
     permissions: permissions,
-    activeInvitation: activeInvitation,
-    dropdownOptions: dropdownOptions,
-    contactDirectory: contactDirectory,
+    dictionarySheetName: COLUMN_DICTIONARY_SHEET_NAME,
+    permissionsSheetName: PERMISSIONS_SHEET_NAME,
+    columnPermissionSheetName: COLUMN_PERMISSIONS_SHEET_NAME,
+  };
+}
+
+function saveInvitation(request) {
+  assertUserCanEditInvitations();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const rowNumber = request && request.rowNumber;
+  const updates = filterUpdatesForColumnVisibility((request && request.updates) || {}, columnVisibility);
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  ensureInvitationIdForRow(rowNumber);
+  applyKpiCalculations(rowNumber, updates);
+  const updated = updateInvitationRow(rowNumber, updates, columnVisibility);
+  return {
+    rowNumber: rowNumber,
+    data: updated,
+  };
+}
+
+function acceptInvitation(request) {
+  assertUserCanSyncInvitations();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const filteredRequest = {
+    rowNumber: request && request.rowNumber,
+    updates: filterUpdatesForColumnVisibility((request && request.updates) || {}, columnVisibility),
+  };
+  const saved = saveInvitation(filteredRequest);
+  const syncResult = syncInvitationRow(saved.rowNumber);
+  return {
+    rowNumber: saved.rowNumber,
+    data: getRowData(saved.rowNumber, columnVisibility),
+    syncedRows: syncResult.syncedRows,
+  };
+}
+
+function deleteInvitation(request) {
+  assertUserCanDeleteInvitations();
+  const rowNumber = request && request.rowNumber;
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida para eliminar.');
+  }
+  const sheet = getInvitationSheet();
+  const lastRow = sheet.getLastRow();
+  if (rowNumber > lastRow) {
+    throw new Error('La fila ' + rowNumber + ' no existe en la hoja.');
+  }
+  sheet.deleteRow(rowNumber);
+  return {
+    deletedRow: rowNumber,
+  };
+}
+
+function listColumnMetadata() {
+  return FIELD_SECTIONS.reduce(function (acc, section) {
+    section.fields.forEach(function (field) {
+      acc.push({
+        alias: field.alias,
+        header: field.header,
+        section: section.id,
+      });
+    });
+    return acc;
+  }, []);
+}
+
+function buildHyperlinkFormula(url, text) {
+  const safeUrl = escapeFormulaValue(url);
+  const safeText = escapeFormulaValue(text);
+  return '=HYPERLINK("' + safeUrl + '","' + safeText + '")';
+}
+
+function parseHyperlinkFormula(formula) {
+  if (!formula || typeof formula !== 'string') {
+    return null;
+  }
+  const trimmed = formula.trim();
+  const match = /^=HYPERLINK\(\s*"((?:[^"]|"")*)"\s*(?:,\s*"((?:[^"]|"")*)"\s*)?\)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const url = match[1] ? match[1].replace(/""/g, '"') : '';
+  const text = match[2] ? match[2].replace(/""/g, '"') : '';
+  return { url: url, text: text };
+}
+
+function escapeFormulaValue(value) {
+  return String(value || '').replace(/"/g, '""');
+}
+
+function syncActiveInvitation() {
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const active = getActiveInvitation(columnVisibility);
+  if (!active.rowNumber) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  return syncInvitationRow(active.rowNumber);
+}
+
+function getSidebarContext() {
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
+  return {
+    fieldSections: fieldSectionsForUser,
+    activeInvitation: getActiveInvitation(columnVisibility),
+    sheetName: SHEET_NAME,
+    dropdownOptions: filterOptionMapByVisibility(buildDropdownOptions(), columnVisibility),
+    contactDirectory: filterContactDirectoryByVisibility(
+      buildContactDirectory(),
+      columnVisibility
+    ),
+    permissions: permissions,
+    dictionarySheetName: COLUMN_DICTIONARY_SHEET_NAME,
+    columnPermissionSheetName: COLUMN_PERMISSIONS_SHEET_NAME,
+    permissionsSheetName: PERMISSIONS_SHEET_NAME,
   };
 }
 
