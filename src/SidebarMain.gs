@@ -492,11 +492,105 @@ const FIELD_LOOKUP = (function () {
   return lookup;
 })();
 
+function cloneFieldDefinition(field) {
+  if (!field) {
+    return field;
+  }
+  const copy = {};
+  Object.keys(field).forEach(function (key) {
+    const value = field[key];
+    if (Array.isArray(value)) {
+      copy[key] = value.slice();
+    } else if (value && typeof value === 'object') {
+      copy[key] = Object.assign({}, value);
+    } else {
+      copy[key] = value;
+    }
+  });
+  return copy;
+}
+
+function cloneFieldSections() {
+  return FIELD_SECTIONS.map(function (section) {
+    const copy = Object.assign({}, section);
+    copy.fields = section.fields.map(function (field) {
+      return cloneFieldDefinition(field);
+    });
+    return copy;
+  });
+}
+
+function buildFieldSectionsForVisibility(columnVisibility) {
+  const clonedSections = cloneFieldSections();
+  return clonedSections
+    .map(function (section) {
+      section.fields = section.fields.filter(function (field) {
+        if (!field || !field.alias) {
+          return false;
+        }
+        if (field.alias === 'invitation_id') {
+          return true;
+        }
+        if (!columnVisibility) {
+          return true;
+        }
+        return columnVisibility[field.alias] !== false;
+      });
+      return section;
+    })
+    .filter(function (section) {
+      return Array.isArray(section.fields) && section.fields.length > 0;
+    });
+}
+
+function filterOptionMapByVisibility(optionMap, columnVisibility) {
+  if (!columnVisibility) {
+    return optionMap;
+  }
+  const filtered = {};
+  Object.keys(optionMap || {}).forEach(function (alias) {
+    if (columnVisibility[alias] === false) {
+      return;
+    }
+    filtered[alias] = optionMap[alias];
+  });
+  return filtered;
+}
+
+function filterContactDirectoryByVisibility(directory, columnVisibility) {
+  if (!columnVisibility) {
+    return directory;
+  }
+  const filtered = {};
+  Object.keys(directory || {}).forEach(function (alias) {
+    if (columnVisibility[alias] === false) {
+      return;
+    }
+    filtered[alias] = directory[alias];
+  });
+  return filtered;
+}
+
+function filterUpdatesForColumnVisibility(updates, columnVisibility) {
+  if (!columnVisibility) {
+    return Object.assign({}, updates);
+  }
+  const filtered = {};
+  Object.keys(updates || {}).forEach(function (alias) {
+    if (alias !== 'invitation_id' && columnVisibility[alias] === false) {
+      return;
+    }
+    filtered[alias] = updates[alias];
+  });
+  return filtered;
+}
+
 const BOOLEAN_TRUE_VALUES = ['true', 'sí', 'si', 'yes', 'y', '1', 'verdadero'];
 const BOOLEAN_FALSE_VALUES = ['false', 'no', '0', 'n', 'falso'];
 
 function onOpen() {
   ensurePermissionsSheet();
+  ensureColumnPermissionsSheet();
   ensureColumnDictionarySheet();
   SpreadsheetApp.getUi()
     .createMenu('PMO • EKA')
@@ -507,11 +601,17 @@ function onOpen() {
 
 function showSidebar() {
   ensurePermissionsSheet();
+  ensureColumnPermissionsSheet();
   ensureColumnDictionarySheet();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
   const template = HtmlService.createTemplateFromFile('Sidebar');
   template.sheetName = getInvitationSheet().getName();
-  template.fieldSectionsJson = JSON.stringify(FIELD_SECTIONS);
+  template.fieldSectionsJson = JSON.stringify(fieldSectionsForUser);
   template.dictionarySheetName = COLUMN_DICTIONARY_SHEET_NAME;
+  template.permissionsSheetName = PERMISSIONS_SHEET_NAME;
+  template.columnPermissionSheetName = COLUMN_PERMISSIONS_SHEET_NAME;
   const htmlOutput = template
     .evaluate()
     .setTitle(SIDEBAR_TITLE)
@@ -604,7 +704,7 @@ function generateInvitationId(sheet) {
   return candidate;
 }
 
-function getRowData(rowNumber) {
+function getRowData(rowNumber, columnVisibility) {
   if (rowNumber <= HEADER_ROW) {
     throw new Error('La fila activa debe estar debajo del encabezado.');
   }
@@ -623,6 +723,9 @@ function getRowData(rowNumber) {
   const result = { rowNumber: rowNumber };
 
   Object.keys(COLUMN_MAP).forEach(function (alias) {
+    if (alias !== 'invitation_id' && columnVisibility && columnVisibility[alias] === false) {
+      return;
+    }
     const headerName = COLUMN_MAP[alias];
     const columnIndex = headers.indexOf(headerName);
     if (columnIndex === -1) {
@@ -639,7 +742,7 @@ function getRowData(rowNumber) {
   return result;
 }
 
-function getActiveInvitation() {
+function getActiveInvitation(columnVisibility) {
   const sheet = SpreadsheetApp.getActiveSheet();
   if (sheet.getName() !== SHEET_NAME) {
     return {
@@ -662,7 +765,7 @@ function getActiveInvitation() {
     rowNumber: row,
     sheetName: SHEET_NAME,
     expectedSheetName: SHEET_NAME,
-    data: getRowData(row),
+    data: getRowData(row, columnVisibility),
   };
 }
 
@@ -979,7 +1082,7 @@ function toNumberOrNull(value) {
   return isNaN(parsed) ? null : parsed;
 }
 
-function updateInvitationRow(rowNumber, updates) {
+function updateInvitationRow(rowNumber, updates, columnVisibility) {
   if (!rowNumber || rowNumber <= HEADER_ROW) {
     throw new Error('Número de fila inválido para actualizar.');
   }
@@ -997,7 +1100,7 @@ function updateInvitationRow(rowNumber, updates) {
     const value = normalizeValueForSheet(alias, updates[alias]);
     sheet.getRange(rowNumber, index + 1).setValue(value);
   });
-  return getRowData(rowNumber);
+  return getRowData(rowNumber, columnVisibility);
 }
 
 function normalizeValueForSheet(alias, value) {
@@ -1269,7 +1372,9 @@ function syncInvitationRow(rowNumber) {
 }
 
 function syncActiveInvitation() {
-  const active = getActiveInvitation();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const active = getActiveInvitation(columnVisibility);
   if (!active.rowNumber) {
     throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
   }
@@ -1278,15 +1383,111 @@ function syncActiveInvitation() {
 
 function getSidebarContext() {
   const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const fieldSectionsForUser = buildFieldSectionsForVisibility(columnVisibility);
   return {
-    fieldSections: FIELD_SECTIONS,
-    activeInvitation: getActiveInvitation(),
+    fieldSections: fieldSectionsForUser,
+    activeInvitation: getActiveInvitation(columnVisibility),
     sheetName: SHEET_NAME,
-    dropdownOptions: buildDropdownOptions(),
-    contactDirectory: buildContactDirectory(),
+    dropdownOptions: filterOptionMapByVisibility(buildDropdownOptions(), columnVisibility),
+    contactDirectory: filterContactDirectoryByVisibility(
+      buildContactDirectory(),
+      columnVisibility
+    ),
     permissions: permissions,
     dictionarySheetName: COLUMN_DICTIONARY_SHEET_NAME,
+    columnPermissionSheetName: COLUMN_PERMISSIONS_SHEET_NAME,
+    permissionsSheetName: PERMISSIONS_SHEET_NAME,
   };
+}
+
+function saveInvitation(request) {
+  assertUserCanEditInvitations();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const rowNumber = request && request.rowNumber;
+  const updates = filterUpdatesForColumnVisibility((request && request.updates) || {}, columnVisibility);
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
+  }
+  ensureInvitationIdForRow(rowNumber);
+  applyKpiCalculations(rowNumber, updates);
+  const updated = updateInvitationRow(rowNumber, updates, columnVisibility);
+  return {
+    rowNumber: rowNumber,
+    data: updated,
+  };
+}
+
+function acceptInvitation(request) {
+  assertUserCanSyncInvitations();
+  const permissions = getCurrentUserPermissions();
+  const columnVisibility = getColumnVisibilityForEmail(permissions.email);
+  const filteredRequest = {
+    rowNumber: request && request.rowNumber,
+    updates: filterUpdatesForColumnVisibility((request && request.updates) || {}, columnVisibility),
+  };
+  const saved = saveInvitation(filteredRequest);
+  const syncResult = syncInvitationRow(saved.rowNumber);
+  return {
+    rowNumber: saved.rowNumber,
+    data: getRowData(saved.rowNumber, columnVisibility),
+    syncedRows: syncResult.syncedRows,
+  };
+}
+
+function deleteInvitation(request) {
+  assertUserCanDeleteInvitations();
+  const rowNumber = request && request.rowNumber;
+  if (!rowNumber || rowNumber <= HEADER_ROW) {
+    throw new Error('Selecciona una fila válida para eliminar.');
+  }
+  const sheet = getInvitationSheet();
+  const lastRow = sheet.getLastRow();
+  if (rowNumber > lastRow) {
+    throw new Error('La fila ' + rowNumber + ' no existe en la hoja.');
+  }
+  sheet.deleteRow(rowNumber);
+  return {
+    deletedRow: rowNumber,
+  };
+}
+
+function listColumnMetadata() {
+  return FIELD_SECTIONS.reduce(function (acc, section) {
+    section.fields.forEach(function (field) {
+      acc.push({
+        alias: field.alias,
+        header: field.header,
+        section: section.id,
+      });
+    });
+    return acc;
+  }, []);
+}
+
+function buildHyperlinkFormula(url, text) {
+  const safeUrl = escapeFormulaValue(url);
+  const safeText = escapeFormulaValue(text);
+  return '=HYPERLINK("' + safeUrl + '","' + safeText + '")';
+}
+
+function parseHyperlinkFormula(formula) {
+  if (!formula || typeof formula !== 'string') {
+    return null;
+  }
+  const trimmed = formula.trim();
+  const match = /^=HYPERLINK\(\s*"((?:[^"]|"")*)"\s*(?:,\s*"((?:[^"]|"")*)"\s*)?\)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const url = match[1] ? match[1].replace(/""/g, '"') : '';
+  const text = match[2] ? match[2].replace(/""/g, '"') : '';
+  return { url: url, text: text };
+}
+
+function escapeFormulaValue(value) {
+  return String(value || '').replace(/"/g, '""');
 }
 
 function saveInvitation(request) {

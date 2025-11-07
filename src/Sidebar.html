@@ -241,11 +241,141 @@
         </div>
       </div>
 
+      <div id="permissionsCard" class="card shadow-sm mb-3 d-none">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+              <h2 class="h6 fw-semibold mb-1">Administración de accesos</h2>
+              <div class="text-muted small">
+                Gestiona roles y visibilidad de columnas para los usuarios registrados.
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                id="openPermissionsSheetButton"
+                type="button"
+              >
+                Hoja de roles
+              </button>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                id="openColumnPermissionsSheetButton"
+                type="button"
+              >
+                Hoja visibilidad
+              </button>
+            </div>
+          </div>
+
+          <div id="permissionStatus" class="form-text mb-3"></div>
+
+          <form id="permissionUserForm" class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="permissionUserEmail">Correo</label>
+              <input
+                type="email"
+                class="form-control form-control-sm"
+                id="permissionUserEmail"
+                placeholder="usuario@empresa.com"
+                required
+              />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="permissionUserRole">Rol</label>
+              <select class="form-select form-select-sm" id="permissionUserRole" required>
+                <option value="ADMIN">Administrador</option>
+                <option value="EDITOR">Editor</option>
+                <option value="LECTOR">Lector</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label" for="permissionUserNotes">Notas</label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                id="permissionUserNotes"
+                placeholder="Observaciones"
+              />
+            </div>
+            <div class="col-6 col-md-2 text-md-end">
+              <button type="submit" class="btn btn-primary btn-sm w-100">Registrar</button>
+            </div>
+          </form>
+
+          <div class="table-responsive small mt-3">
+            <table class="table table-sm align-middle mb-3">
+              <thead>
+                <tr>
+                  <th scope="col">Correo</th>
+                  <th scope="col">Rol</th>
+                  <th scope="col">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="permissionUserTableBody"></tbody>
+            </table>
+          </div>
+
+          <hr class="my-3" />
+
+          <div class="mb-2">
+            <h3 class="h6 fw-semibold mb-1">Visibilidad de columnas</h3>
+            <div class="text-muted small">
+              Selecciona un usuario y activa las columnas que podrá visualizar en la hoja
+              <span class="fw-semibold"><?!= sheetName ?></span>.
+            </div>
+          </div>
+
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-12 col-lg-6">
+              <label class="form-label" for="columnPermissionUser">Usuario</label>
+              <select id="columnPermissionUser" class="form-select form-select-sm">
+                <option value="">Selecciona un usuario…</option>
+              </select>
+            </div>
+            <div class="col-12 col-lg-6 text-lg-end">
+              <button id="columnPermissionSaveButton" type="button" class="btn btn-primary btn-sm">
+                Guardar visibilidad
+              </button>
+            </div>
+          </div>
+
+          <div id="columnPermissionList" class="row g-2"></div>
+        </div>
+      </div>
+
       <div id="loadingOverlay" class="loading-overlay d-none">
         <div class="overlay-box">
           <div class="spinner-border text-primary" role="status"></div>
           <div id="loadingMessage" class="small mt-2 fw-semibold text-primary">
             Procesando…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="optionManagerModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="optionManagerTitle">Eliminar valor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label" for="optionManagerSelect">Selecciona el valor a eliminar</label>
+              <select id="optionManagerSelect" class="form-select"></select>
+            </div>
+            <div class="alert alert-warning small mb-0" role="alert">
+              Se eliminará el valor seleccionado de todas las filas de la hoja
+              <span class="fw-semibold"><?!= sheetName ?></span>.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-danger" id="optionManagerConfirm">Eliminar valor</button>
           </div>
         </div>
       </div>
@@ -260,6 +390,8 @@
       const FIELD_SECTIONS = JSON.parse(<?!= JSON.stringify(fieldSectionsJson) ?>);
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
+      const PERMISSIONS_SHEET_NAME = <?!= JSON.stringify(permissionsSheetName) ?>;
+      const COLUMN_PERMISSION_SHEET_NAME = <?!= JSON.stringify(columnPermissionSheetName) ?>;
       const CUSTOM_OPTION_VALUE = '__custom_option__';
       const CUSTOM_OPTION_REMOVE = '__remove_option__';
       const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
@@ -275,7 +407,24 @@
           canEdit: true,
           canSync: true,
           canDelete: true,
+          canManageAccess: false,
+          role: '',
+          email: '',
         },
+        permissionAdmin: {
+          users: [],
+          columns: [],
+          matrix: {},
+          selectedEmail: '',
+          loaded: false,
+          loading: false,
+        },
+        optionRemoval: {
+          alias: '',
+          options: [],
+          previousValue: '',
+        },
+        optionModalInstance: null,
       };
 
       const elements = {
@@ -299,6 +448,22 @@
         statusMessage: document.getElementById('statusMessage'),
         loadingOverlay: document.getElementById('loadingOverlay'),
         loadingMessage: document.getElementById('loadingMessage'),
+        permissionsCard: document.getElementById('permissionsCard'),
+        permissionStatus: document.getElementById('permissionStatus'),
+        permissionUserForm: document.getElementById('permissionUserForm'),
+        permissionUserEmail: document.getElementById('permissionUserEmail'),
+        permissionUserRole: document.getElementById('permissionUserRole'),
+        permissionUserNotes: document.getElementById('permissionUserNotes'),
+        permissionUserTableBody: document.getElementById('permissionUserTableBody'),
+        openPermissionsSheetButton: document.getElementById('openPermissionsSheetButton'),
+        openColumnPermissionsSheetButton: document.getElementById('openColumnPermissionsSheetButton'),
+        columnPermissionUser: document.getElementById('columnPermissionUser'),
+        columnPermissionList: document.getElementById('columnPermissionList'),
+        columnPermissionSaveButton: document.getElementById('columnPermissionSaveButton'),
+        optionModal: document.getElementById('optionManagerModal'),
+        optionModalTitle: document.getElementById('optionManagerTitle'),
+        optionModalSelect: document.getElementById('optionManagerSelect'),
+        optionModalConfirm: document.getElementById('optionManagerConfirm'),
       };
 
       const tabInstances = {};
@@ -308,6 +473,10 @@
         buildTabs();
         initializeStaticOptions();
         attachEventHandlers();
+        if (elements.optionModal) {
+          state.optionModalInstance = new bootstrap.Modal(elements.optionModal);
+          elements.optionModal.addEventListener('hidden.bs.modal', resetOptionModalState);
+        }
         loadContext();
       });
 
@@ -793,19 +962,32 @@
 
       function normalizePermissions(permissions) {
         if (!permissions) {
-          return { canEdit: true, canSync: true, canDelete: true, role: '' };
+          return {
+            canEdit: true,
+            canSync: true,
+            canDelete: true,
+            canManageAccess: false,
+            role: '',
+            email: '',
+          };
         }
         return {
           canEdit: permissions.canEdit !== false,
           canSync: permissions.canSync !== false,
           canDelete: permissions.canDelete !== false,
+          canManageAccess: permissions.canManageAccess !== false,
           role: permissions.role || '',
+          email: permissions.email || '',
         };
       }
 
       function applyPermissions(permissions) {
         const normalized = normalizePermissions(permissions);
         state.permissions = normalized;
+        togglePermissionsCard(normalized.canManageAccess);
+        if (normalized.canManageAccess && !state.permissionAdmin.loaded && !state.permissionAdmin.loading) {
+          loadPermissionAdminData();
+        }
         if (!elements.formCard) {
           updateActionState();
           return;
@@ -843,6 +1025,31 @@
         elements.formCard.addEventListener('change', handleFieldInput);
         elements.formCard.addEventListener('focusin', handleFieldFocus);
         elements.formCard.addEventListener('click', handleLinkButtons);
+
+        if (elements.permissionUserForm) {
+          elements.permissionUserForm.addEventListener('submit', handlePermissionUserSubmit);
+        }
+        if (elements.openPermissionsSheetButton) {
+          elements.openPermissionsSheetButton.addEventListener('click', handleOpenPermissionsSheet);
+        }
+        if (elements.openColumnPermissionsSheetButton) {
+          elements.openColumnPermissionsSheetButton.addEventListener(
+            'click',
+            handleOpenColumnPermissionsSheet
+          );
+        }
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.addEventListener('change', handleColumnPermissionUserChange);
+        }
+        if (elements.columnPermissionList) {
+          elements.columnPermissionList.addEventListener('change', handleColumnPermissionToggle);
+        }
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.addEventListener('click', handleColumnPermissionSave);
+        }
+        if (elements.optionModalConfirm) {
+          elements.optionModalConfirm.addEventListener('click', handleOptionModalConfirm);
+        }
       }
 
       function handleFieldInput(event) {
@@ -990,6 +1197,21 @@
 
       function loadContext() {
         setLoading(true, 'Cargando información de la hoja…');
+        state.permissionAdmin.loaded = false;
+        state.permissionAdmin.users = [];
+        state.permissionAdmin.columns = [];
+        state.permissionAdmin.matrix = {};
+        state.permissionAdmin.selectedEmail = '';
+        if (elements.columnPermissionList) {
+          elements.columnPermissionList.innerHTML = '';
+        }
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.value = '';
+        }
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled = true;
+        }
+        setPermissionStatus('', '');
         google.script.run
           .withSuccessHandler((context) => {
             setLoading(false);
@@ -1326,58 +1548,18 @@
       function handleRemoveOption(select, alias) {
         const field = FIELD_LOOKUP[alias];
         const previous = select.dataset.previousValue || '';
-        const options = getOptionsForField(alias);
-        if (!options.length) {
-          select.value = previous;
-          return;
-        }
-        const availableList = options.map((option) => option.label).join('\n• ');
-        const promptMessage =
-          `¿Qué valor deseas eliminar de "${field.label}"?` +
-          '\n• ' +
-          availableList +
-          '\n\nSe borrará de la hoja actual.';
-        const response = prompt(promptMessage, previous || '');
-        if (response === null) {
-          select.value = previous;
-          return;
-        }
-        const trimmed = response.trim();
-        if (!trimmed) {
-          select.value = previous;
-          return;
-        }
-        const match = options.find((option) => option.value.toLowerCase() === trimmed.toLowerCase());
-        if (!match) {
-          showAlert('warning', `No se encontró el valor "${trimmed}" en la lista.`);
-          select.value = previous;
-          return;
-        }
-        const confirmed = confirm(
-          `Se eliminará "${match.label}" de todas las filas de la hoja. ¿Deseas continuar?`
-        );
-        if (!confirmed) {
-          select.value = previous;
-          return;
-        }
         select.value = previous;
-        setLoading(true, 'Eliminando valor de la lista…');
-        google.script.run
-          .withSuccessHandler((result) => {
-            setLoading(false);
-            setStatus(
-              result && result.removed
-                ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
-                : `No se encontraron coincidencias para "${match.label}".`,
-              result && result.removed ? 'success' : 'warning'
-            );
-            loadContext();
-          })
-          .withFailureHandler((error) => {
-            setLoading(false);
-            showError(error);
-          })
-          .removeDropdownValue({ alias, value: match.value });
+        const options = getOptionsForField(alias).filter((option) => option && option.value);
+        if (!options.length) {
+          showAlert('info', `No hay valores registrados en "${field.label}" para eliminar.`);
+          return;
+        }
+        openOptionRemovalModal(
+          alias,
+          field,
+          options.map((option) => ({ value: option.value, label: option.label })),
+          previous
+        );
       }
 
       function updateSummaryCard(data) {
@@ -1446,6 +1628,507 @@
           badge.textContent = `${status.label}: ${status.value}`;
           elements.summaryStatuses.appendChild(badge);
         });
+      }
+
+      function togglePermissionsCard(visible) {
+        if (!elements.permissionsCard) {
+          return;
+        }
+        const method = visible ? 'remove' : 'add';
+        elements.permissionsCard.classList[method]('d-none');
+        if (!visible) {
+          setPermissionStatus('', '');
+        }
+      }
+
+      function setPermissionStatus(message, tone) {
+        if (!elements.permissionStatus) {
+          return;
+        }
+        elements.permissionStatus.textContent = message || '';
+        elements.permissionStatus.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+        if (!message) {
+          return;
+        }
+        let className = 'text-muted';
+        if (tone === 'success') {
+          className = 'text-success';
+        } else if (tone === 'warning') {
+          className = 'text-warning';
+        } else if (tone === 'danger') {
+          className = 'text-danger';
+        }
+        elements.permissionStatus.classList.add(className);
+      }
+
+      function setPermissionAdminLoading(isLoading, statusMessage) {
+        state.permissionAdmin.loading = isLoading;
+        if (statusMessage !== undefined) {
+          setPermissionStatus(statusMessage, isLoading ? 'info' : undefined);
+        }
+        if (elements.permissionUserForm) {
+          Array.from(elements.permissionUserForm.elements).forEach((input) => {
+            input.disabled = isLoading;
+          });
+        }
+        if (elements.openPermissionsSheetButton) {
+          elements.openPermissionsSheetButton.disabled = isLoading;
+        }
+        if (elements.openColumnPermissionsSheetButton) {
+          elements.openColumnPermissionsSheetButton.disabled = isLoading;
+        }
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.disabled = isLoading;
+        }
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled =
+            isLoading || !state.permissionAdmin.selectedEmail;
+        }
+        if (elements.columnPermissionList) {
+          const inputs = elements.columnPermissionList.querySelectorAll('input[type="checkbox"]');
+          inputs.forEach((checkbox) => {
+            checkbox.disabled = isLoading;
+          });
+        }
+      }
+
+      function loadPermissionAdminData() {
+        if (!state.permissions || state.permissions.canManageAccess !== true) {
+          togglePermissionsCard(false);
+          return;
+        }
+        setPermissionAdminLoading(true, 'Cargando configuración de permisos…');
+        google.script.run
+          .withSuccessHandler((data) => {
+            setPermissionAdminLoading(false);
+            state.permissionAdmin.loaded = true;
+            applyPermissionAdminData(data || {});
+            if (state.permissionAdmin.users.length) {
+              setPermissionStatus('Permisos cargados correctamente.', 'success');
+            } else {
+              setPermissionStatus('No hay usuarios registrados todavía.', 'warning');
+            }
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .getPermissionManagementData();
+      }
+
+      function applyPermissionAdminData(data) {
+        const users = Array.isArray(data.users) ? data.users.slice() : [];
+        users.sort((a, b) => {
+          const aEmail = (a.email || '').toLowerCase();
+          const bEmail = (b.email || '').toLowerCase();
+          if (aEmail < bEmail) {
+            return -1;
+          }
+          if (aEmail > bEmail) {
+            return 1;
+          }
+          return 0;
+        });
+        state.permissionAdmin.users = users;
+        state.permissionAdmin.columns = Array.isArray(data.columns) ? data.columns.slice() : [];
+        state.permissionAdmin.matrix = data.matrix && typeof data.matrix === 'object' ? data.matrix : {};
+        const previous = state.permissionAdmin.selectedEmail;
+        const hasPrevious = previous && users.some((user) => user.email === previous);
+        state.permissionAdmin.selectedEmail = hasPrevious
+          ? previous
+          : users.length
+          ? users[0].email
+          : '';
+        renderPermissionUsersTable();
+        populateColumnPermissionUserSelect();
+        renderColumnPermissionList();
+      }
+
+      function normalizeRoleLabel(role) {
+        const value = (role || '').toUpperCase();
+        if (value === 'ADMIN') {
+          return 'Administrador';
+        }
+        if (value === 'EDITOR') {
+          return 'Editor';
+        }
+        if (value === 'LECTOR') {
+          return 'Lector';
+        }
+        return value || 'Sin rol';
+      }
+
+      function renderPermissionUsersTable() {
+        if (!elements.permissionUserTableBody) {
+          return;
+        }
+        const tbody = elements.permissionUserTableBody;
+        tbody.innerHTML = '';
+        if (!state.permissionAdmin.users.length) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 3;
+          cell.className = 'text-muted small';
+          cell.textContent = 'Registra un usuario para gestionar accesos.';
+          row.appendChild(cell);
+          tbody.appendChild(row);
+          return;
+        }
+        state.permissionAdmin.users.forEach((user) => {
+          const row = document.createElement('tr');
+          const emailCell = document.createElement('td');
+          emailCell.textContent = user.email || '';
+          const roleCell = document.createElement('td');
+          roleCell.textContent = normalizeRoleLabel(user.role);
+          const notesCell = document.createElement('td');
+          notesCell.textContent = user.notes || '';
+          row.appendChild(emailCell);
+          row.appendChild(roleCell);
+          row.appendChild(notesCell);
+          tbody.appendChild(row);
+        });
+      }
+
+      function populateColumnPermissionUserSelect() {
+        if (!elements.columnPermissionUser) {
+          return;
+        }
+        const select = elements.columnPermissionUser;
+        const selected = state.permissionAdmin.selectedEmail;
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Selecciona un usuario…';
+        select.appendChild(placeholder);
+        state.permissionAdmin.users.forEach((user) => {
+          const option = document.createElement('option');
+          option.value = user.email || '';
+          const label = normalizeRoleLabel(user.role);
+          option.textContent = label ? `${user.email} · ${label}` : user.email;
+          select.appendChild(option);
+        });
+        if (selected && state.permissionAdmin.users.some((user) => user.email === selected)) {
+          select.value = selected;
+        } else {
+          select.value = state.permissionAdmin.selectedEmail || '';
+        }
+      }
+
+      function ensurePermissionMatrixEntry(email) {
+        const normalized = (email || '').toLowerCase();
+        if (!normalized) {
+          return {};
+        }
+        if (!state.permissionAdmin.matrix[normalized]) {
+          state.permissionAdmin.matrix[normalized] = {};
+        }
+        return state.permissionAdmin.matrix[normalized];
+      }
+
+      function groupColumnsBySection(columns) {
+        const groups = {};
+        (columns || []).forEach((column) => {
+          const sectionId = column.section || 'otros';
+          if (!groups[sectionId]) {
+            groups[sectionId] = [];
+          }
+          groups[sectionId].push(column);
+        });
+        return groups;
+      }
+
+      function getSectionLabel(sectionId) {
+        const section = FIELD_SECTIONS.find((candidate) => candidate.id === sectionId);
+        return (section && section.title) || sectionId;
+      }
+
+      function renderColumnPermissionList() {
+        if (!elements.columnPermissionList) {
+          return;
+        }
+        const container = elements.columnPermissionList;
+        container.innerHTML = '';
+        const email = state.permissionAdmin.selectedEmail;
+        if (!email) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'col-12';
+          placeholder.innerHTML =
+            '<div class="text-muted small">Selecciona un usuario para ajustar la visibilidad.</div>';
+          container.appendChild(placeholder);
+          if (elements.columnPermissionSaveButton) {
+            elements.columnPermissionSaveButton.disabled = true;
+          }
+          return;
+        }
+        const matrix = ensurePermissionMatrixEntry(email);
+        const columns = (state.permissionAdmin.columns || []).filter(
+          (column) => column.alias !== 'invitation_id'
+        );
+        if (!columns.length) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'col-12';
+          placeholder.innerHTML = '<div class="text-muted small">No hay columnas disponibles para configurar.</div>';
+          container.appendChild(placeholder);
+          return;
+        }
+        const groups = groupColumnsBySection(columns);
+        Object.keys(groups).forEach((sectionId) => {
+          const sectionColumns = groups[sectionId];
+          const wrapper = document.createElement('div');
+          wrapper.className = 'col-12';
+          const card = document.createElement('div');
+          card.className = 'border rounded-3 p-3 bg-light';
+          const title = document.createElement('h4');
+          title.className = 'h6 fw-semibold text-primary mb-3';
+          title.textContent = getSectionLabel(sectionId);
+          card.appendChild(title);
+          const row = document.createElement('div');
+          row.className = 'row g-2';
+          sectionColumns.forEach((column) => {
+            const col = document.createElement('div');
+            col.className = 'col-12 col-md-6';
+            const formCheck = document.createElement('div');
+            formCheck.className = 'form-check form-switch';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input';
+            checkbox.id = `column-permission-${sectionId}-${column.alias}`;
+            checkbox.dataset.role = 'column-permission';
+            checkbox.dataset.alias = column.alias;
+            checkbox.checked = matrix[column.alias] !== false;
+            const label = document.createElement('label');
+            label.className = 'form-check-label small';
+            label.setAttribute('for', checkbox.id);
+            label.textContent = column.header;
+            formCheck.appendChild(checkbox);
+            formCheck.appendChild(label);
+            col.appendChild(formCheck);
+            row.appendChild(col);
+          });
+          card.appendChild(row);
+          wrapper.appendChild(card);
+          container.appendChild(wrapper);
+        });
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled = state.permissionAdmin.loading;
+        }
+      }
+
+      function handlePermissionUserSubmit(event) {
+        event.preventDefault();
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        const email = elements.permissionUserEmail.value.trim().toLowerCase();
+        const role = elements.permissionUserRole.value.trim().toUpperCase();
+        const notes = elements.permissionUserNotes.value.trim();
+        if (!email) {
+          setPermissionStatus('Ingresa un correo electrónico válido.', 'warning');
+          return;
+        }
+        setPermissionAdminLoading(true, 'Guardando usuario…');
+        google.script.run
+          .withSuccessHandler(() => {
+            if (elements.permissionUserForm) {
+              elements.permissionUserForm.reset();
+            }
+            state.permissionAdmin.loaded = false;
+            loadPermissionAdminData();
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .upsertPermissionUser({ email, role, notes });
+      }
+
+      function handleOpenPermissionsSheet() {
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        setPermissionAdminLoading(true, `Abriendo hoja "${PERMISSIONS_SHEET_NAME}"…`);
+        google.script.run
+          .withSuccessHandler(() => {
+            setPermissionAdminLoading(false);
+            setPermissionStatus(`Se abrió "${PERMISSIONS_SHEET_NAME}".`, 'success');
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .openPermissionsSheet();
+      }
+
+      function handleOpenColumnPermissionsSheet() {
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        setPermissionAdminLoading(true, `Abriendo hoja "${COLUMN_PERMISSION_SHEET_NAME}"…`);
+        google.script.run
+          .withSuccessHandler(() => {
+            setPermissionAdminLoading(false);
+            setPermissionStatus(`Se abrió "${COLUMN_PERMISSION_SHEET_NAME}".`, 'success');
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .openColumnPermissionsSheet();
+      }
+
+      function handleColumnPermissionUserChange(event) {
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        const email = (event.target.value || '').toLowerCase();
+        state.permissionAdmin.selectedEmail = email;
+        renderColumnPermissionList();
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled =
+            state.permissionAdmin.loading || !state.permissionAdmin.selectedEmail;
+        }
+      }
+
+      function handleColumnPermissionToggle(event) {
+        const target = event.target;
+        if (!target || target.dataset.role !== 'column-permission') {
+          return;
+        }
+        const email = state.permissionAdmin.selectedEmail;
+        if (!email) {
+          return;
+        }
+        const alias = target.dataset.alias;
+        if (!alias) {
+          return;
+        }
+        const matrix = ensurePermissionMatrixEntry(email);
+        matrix[alias] = target.checked;
+      }
+
+      function collectColumnPermissionSnapshot(email) {
+        const snapshot = {};
+        if (!elements.columnPermissionList || !email) {
+          return snapshot;
+        }
+        const checkboxes = elements.columnPermissionList.querySelectorAll('input[data-role="column-permission"]');
+        checkboxes.forEach((checkbox) => {
+          const alias = checkbox.dataset.alias;
+          if (!alias) {
+            return;
+          }
+          snapshot[alias] = checkbox.checked;
+        });
+        return snapshot;
+      }
+
+      function handleColumnPermissionSave() {
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        const email = state.permissionAdmin.selectedEmail;
+        if (!email) {
+          setPermissionStatus('Selecciona un usuario para guardar la visibilidad.', 'warning');
+          return;
+        }
+        const snapshot = collectColumnPermissionSnapshot(email);
+        setPermissionAdminLoading(true, 'Guardando visibilidad…');
+        google.script.run
+          .withSuccessHandler((response) => {
+            setPermissionAdminLoading(false);
+            setPermissionStatus('Visibilidad actualizada correctamente.', 'success');
+            if (response && response.columns) {
+              state.permissionAdmin.matrix[email] = response.columns;
+              renderColumnPermissionList();
+            }
+          })
+          .withFailureHandler((error) => {
+            setPermissionAdminLoading(false);
+            showError(error);
+          })
+          .saveColumnPermissionsForUser({ email, columns: snapshot });
+      }
+
+      function populateOptionModalSelect(options) {
+        if (!elements.optionModalSelect) {
+          return;
+        }
+        const select = elements.optionModalSelect;
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Selecciona un valor…';
+        select.appendChild(placeholder);
+        options.forEach((option) => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.value;
+          optionElement.textContent = option.label;
+          select.appendChild(optionElement);
+        });
+      }
+
+      function resetOptionModalState() {
+        state.optionRemoval = {
+          alias: '',
+          options: [],
+          previousValue: '',
+        };
+        if (elements.optionModalSelect) {
+          elements.optionModalSelect.value = '';
+        }
+      }
+
+      function openOptionRemovalModal(alias, field, options, previousValue) {
+        if (!state.optionModalInstance || !elements.optionModalTitle) {
+          return;
+        }
+        state.optionRemoval = {
+          alias,
+          options,
+          previousValue,
+        };
+        const title = field && field.label ? `Eliminar valor — ${field.label}` : 'Eliminar valor';
+        elements.optionModalTitle.textContent = title;
+        populateOptionModalSelect(options);
+        state.optionModalInstance.show();
+      }
+
+      function handleOptionModalConfirm() {
+        if (!state.optionRemoval.alias) {
+          state.optionModalInstance && state.optionModalInstance.hide();
+          return;
+        }
+        if (!elements.optionModalSelect) {
+          return;
+        }
+        const value = elements.optionModalSelect.value;
+        if (!value) {
+          showAlert('warning', 'Selecciona un valor para eliminar.');
+          return;
+        }
+        const match = state.optionRemoval.options.find((option) => option.value === value);
+        if (!match) {
+          state.optionModalInstance && state.optionModalInstance.hide();
+          return;
+        }
+        state.optionModalInstance.hide();
+        setLoading(true, 'Eliminando valor de la lista…');
+        google.script.run
+          .withSuccessHandler((result) => {
+            setLoading(false);
+            setStatus(
+              result && result.removed
+                ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
+                : `No se encontraron coincidencias para "${match.label}".`,
+              result && result.removed ? 'success' : 'warning'
+            );
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .removeDropdownValue({ alias: state.optionRemoval.alias, value: match.value });
       }
 
       function showFormCards(visible) {
