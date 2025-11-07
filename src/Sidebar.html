@@ -241,108 +241,139 @@
         </div>
       </div>
 
-      <div id="permissionsCard" class="card shadow-sm mb-3 d-none">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-            <div>
-              <h2 class="h6 fw-semibold mb-1">Administración de accesos</h2>
-              <div class="text-muted small">
-                Gestiona roles y visibilidad de columnas para los usuarios registrados.
+      <template id="adminTabTemplate">
+        <div class="tab-pane fade" id="panel-admin" role="tabpanel" aria-labelledby="tab-admin">
+          <div id="permissionsCard" class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div>
+                  <h2 class="h6 fw-semibold mb-1">Administración de accesos</h2>
+                  <div class="text-muted small">
+                    Gestiona roles, columnas visibles y estado de los usuarios registrados.
+                  </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    id="openPermissionsSheetButton"
+                    type="button"
+                  >
+                    Abrir hoja de permisos
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                id="openPermissionsSheetButton"
-                type="button"
-              >
-                Hoja de roles
-              </button>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                id="openColumnPermissionsSheetButton"
-                type="button"
-              >
-                Hoja visibilidad
-              </button>
+
+              <div id="permissionStatus" class="form-text mb-3"></div>
+
+              <form id="permissionUserForm" class="row g-2 align-items-end">
+                <div class="col-12 col-lg-4">
+                  <label class="form-label" for="permissionUserEmail">Usuario (correo)</label>
+                  <input
+                    type="email"
+                    class="form-control form-control-sm"
+                    id="permissionUserEmail"
+                    placeholder="usuario@empresa.com"
+                    required
+                  />
+                </div>
+                <div class="col-12 col-lg-3">
+                  <label class="form-label" for="permissionUserPhone">Teléfono</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    id="permissionUserPhone"
+                    placeholder="+51 900 000 000"
+                  />
+                </div>
+                <div class="col-6 col-lg-2">
+                  <label class="form-label" for="permissionUserRole">Rol</label>
+                  <select class="form-select form-select-sm" id="permissionUserRole" required>
+                    <option value="ADMIN">Administrador</option>
+                    <option value="EDITOR">Editor</option>
+                    <option value="LECTOR">Lector</option>
+                  </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                  <label class="form-label" for="permissionUserStatus">Estado</label>
+                  <select class="form-select form-select-sm" id="permissionUserStatus">
+                    <option value="Habilitado">Habilitado</option>
+                    <option value="Deshabilitado">Deshabilitado</option>
+                  </select>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="permissionUserNotes">Notas</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    id="permissionUserNotes"
+                    placeholder="Observaciones"
+                  />
+                </div>
+                <div class="col-6 col-lg-3 text-lg-end">
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-sm w-100"
+                    id="permissionUserSubmitButton"
+                  >
+                    Registrar
+                  </button>
+                </div>
+                <div class="col-6 col-lg-3 text-lg-end">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm w-100"
+                    id="permissionUserResetButton"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </form>
+
+              <div class="table-responsive small mt-3">
+                <table class="table table-sm align-middle mb-3">
+                  <thead>
+                    <tr>
+                      <th scope="col">Correo</th>
+                      <th scope="col">Teléfono</th>
+                      <th scope="col">Rol</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Notas</th>
+                      <th scope="col" class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="permissionUserTableBody"></tbody>
+                </table>
+              </div>
+
+              <hr class="my-3" />
+
+              <div class="mb-2">
+                <h3 class="h6 fw-semibold mb-1">Visibilidad de columnas</h3>
+                <div class="text-muted small">
+                  Selecciona un usuario y activa las columnas que podrá visualizar en la hoja
+                  <span class="fw-semibold"><?!= sheetName ?></span>.
+                </div>
+              </div>
+
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="columnPermissionUser">Usuario</label>
+                  <select id="columnPermissionUser" class="form-select form-select-sm">
+                    <option value="">Selecciona un usuario…</option>
+                  </select>
+                </div>
+                <div class="col-12 col-lg-6 text-lg-end">
+                  <button id="columnPermissionSaveButton" type="button" class="btn btn-primary btn-sm">
+                    Guardar visibilidad
+                  </button>
+                </div>
+              </div>
+
+              <div id="columnPermissionList" class="row g-2"></div>
             </div>
           </div>
-
-          <div id="permissionStatus" class="form-text mb-3"></div>
-
-          <form id="permissionUserForm" class="row g-2 align-items-end">
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="permissionUserEmail">Correo</label>
-              <input
-                type="email"
-                class="form-control form-control-sm"
-                id="permissionUserEmail"
-                placeholder="usuario@empresa.com"
-                required
-              />
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label" for="permissionUserRole">Rol</label>
-              <select class="form-select form-select-sm" id="permissionUserRole" required>
-                <option value="ADMIN">Administrador</option>
-                <option value="EDITOR">Editor</option>
-                <option value="LECTOR">Lector</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label" for="permissionUserNotes">Notas</label>
-              <input
-                type="text"
-                class="form-control form-control-sm"
-                id="permissionUserNotes"
-                placeholder="Observaciones"
-              />
-            </div>
-            <div class="col-6 col-md-2 text-md-end">
-              <button type="submit" class="btn btn-primary btn-sm w-100">Registrar</button>
-            </div>
-          </form>
-
-          <div class="table-responsive small mt-3">
-            <table class="table table-sm align-middle mb-3">
-              <thead>
-                <tr>
-                  <th scope="col">Correo</th>
-                  <th scope="col">Rol</th>
-                  <th scope="col">Notas</th>
-                </tr>
-              </thead>
-              <tbody id="permissionUserTableBody"></tbody>
-            </table>
-          </div>
-
-          <hr class="my-3" />
-
-          <div class="mb-2">
-            <h3 class="h6 fw-semibold mb-1">Visibilidad de columnas</h3>
-            <div class="text-muted small">
-              Selecciona un usuario y activa las columnas que podrá visualizar en la hoja
-              <span class="fw-semibold"><?!= sheetName ?></span>.
-            </div>
-          </div>
-
-          <div class="row g-2 align-items-end mb-3">
-            <div class="col-12 col-lg-6">
-              <label class="form-label" for="columnPermissionUser">Usuario</label>
-              <select id="columnPermissionUser" class="form-select form-select-sm">
-                <option value="">Selecciona un usuario…</option>
-              </select>
-            </div>
-            <div class="col-12 col-lg-6 text-lg-end">
-              <button id="columnPermissionSaveButton" type="button" class="btn btn-primary btn-sm">
-                Guardar visibilidad
-              </button>
-            </div>
-          </div>
-
-          <div id="columnPermissionList" class="row g-2"></div>
         </div>
-      </div>
+      </template>
 
       <div id="loadingOverlay" class="loading-overlay d-none">
         <div class="overlay-box">
@@ -418,6 +449,7 @@
           selectedEmail: '',
           loaded: false,
           loading: false,
+          editingEmail: '',
         },
         optionRemoval: {
           alias: '',
@@ -452,14 +484,21 @@
         permissionStatus: document.getElementById('permissionStatus'),
         permissionUserForm: document.getElementById('permissionUserForm'),
         permissionUserEmail: document.getElementById('permissionUserEmail'),
+        permissionUserPhone: document.getElementById('permissionUserPhone'),
         permissionUserRole: document.getElementById('permissionUserRole'),
+        permissionUserStatus: document.getElementById('permissionUserStatus'),
         permissionUserNotes: document.getElementById('permissionUserNotes'),
+        permissionUserSubmitButton: document.getElementById('permissionUserSubmitButton'),
+        permissionUserResetButton: document.getElementById('permissionUserResetButton'),
         permissionUserTableBody: document.getElementById('permissionUserTableBody'),
         openPermissionsSheetButton: document.getElementById('openPermissionsSheetButton'),
-        openColumnPermissionsSheetButton: document.getElementById('openColumnPermissionsSheetButton'),
         columnPermissionUser: document.getElementById('columnPermissionUser'),
         columnPermissionList: document.getElementById('columnPermissionList'),
         columnPermissionSaveButton: document.getElementById('columnPermissionSaveButton'),
+        adminTabTemplate: document.getElementById('adminTabTemplate'),
+        adminTabItem: null,
+        adminTabButton: null,
+        adminTabPane: null,
         optionModal: document.getElementById('optionManagerModal'),
         optionModalTitle: document.getElementById('optionManagerTitle'),
         optionModalSelect: document.getElementById('optionManagerSelect'),
@@ -471,6 +510,8 @@
       document.addEventListener('DOMContentLoaded', () => {
         document.title = 'Gestión de Invitaciones';
         buildTabs();
+        attachAdminTab();
+        refreshAdminElementReferences();
         initializeStaticOptions();
         attachEventHandlers();
         if (elements.optionModal) {
@@ -969,6 +1010,8 @@
             canManageAccess: false,
             role: '',
             email: '',
+            enabled: true,
+            status: '',
           };
         }
         return {
@@ -978,6 +1021,8 @@
           canManageAccess: permissions.canManageAccess !== false,
           role: permissions.role || '',
           email: permissions.email || '',
+          enabled: permissions.enabled !== false,
+          status: permissions.status || '',
         };
       }
 
@@ -1029,14 +1074,14 @@
         if (elements.permissionUserForm) {
           elements.permissionUserForm.addEventListener('submit', handlePermissionUserSubmit);
         }
+        if (elements.permissionUserResetButton) {
+          elements.permissionUserResetButton.addEventListener('click', handlePermissionUserReset);
+        }
+        if (elements.permissionUserTableBody) {
+          elements.permissionUserTableBody.addEventListener('click', handlePermissionUserTableClick);
+        }
         if (elements.openPermissionsSheetButton) {
           elements.openPermissionsSheetButton.addEventListener('click', handleOpenPermissionsSheet);
-        }
-        if (elements.openColumnPermissionsSheetButton) {
-          elements.openColumnPermissionsSheetButton.addEventListener(
-            'click',
-            handleOpenColumnPermissionsSheet
-          );
         }
         if (elements.columnPermissionUser) {
           elements.columnPermissionUser.addEventListener('change', handleColumnPermissionUserChange);
@@ -1380,47 +1425,7 @@
         toggleLinkButtons(alias, !!value.url);
       }
 
-      function updateOptionChip(alias) {
-        const field = FIELD_LOOKUP[alias];
-        if (!field || !field.palette) {
-          return;
-        }
-        const wrapper = elements.formCard.querySelector(
-          `[data-alias="${alias}"][data-palette="true"]`
-        );
-        if (!wrapper) {
-          return;
-        }
-        const chip = wrapper.querySelector('[data-role="option-chip"]');
-        if (!chip) {
-          return;
-        }
-        const label = chip.querySelector('[data-role="option-chip-label"]');
-        const dot = chip.querySelector('.color-dot');
-        const currentValue = state.values[alias] || '';
-        if (!currentValue) {
-          chip.style.backgroundColor = 'rgba(99, 102, 241, 0.08)';
-          chip.style.color = '#312e81';
-          if (dot) {
-            dot.style.backgroundColor = '#6366f1';
-          }
-          if (label) {
-            label.textContent = 'Sin selección';
-          }
-          return;
-        }
-        const palette = field.palette || {};
-        const normalized = currentValue.toString().trim().toLowerCase();
-        const color = palette[normalized] || '#4338ca';
-        chip.style.backgroundColor = color + '1a';
-        chip.style.color = color;
-        if (dot) {
-          dot.style.backgroundColor = color;
-        }
-        if (label) {
-          label.textContent = currentValue;
-        }
-      }
+      function updateOptionChip() {}
 
       function applyDependentFieldValue(alias, value, options = {}) {
         const field = FIELD_LOOKUP[alias];
@@ -1631,12 +1636,34 @@
       }
 
       function togglePermissionsCard(visible) {
-        if (!elements.permissionsCard) {
-          return;
+        const show = visible === true;
+        if (elements.adminTabItem) {
+          elements.adminTabItem.classList.toggle('d-none', !show);
         }
-        const method = visible ? 'remove' : 'add';
-        elements.permissionsCard.classList[method]('d-none');
-        if (!visible) {
+        if (elements.adminTabPane) {
+          elements.adminTabPane.classList.toggle('d-none', !show);
+        }
+        if (elements.permissionsCard) {
+          elements.permissionsCard.classList.toggle('d-none', !show);
+        }
+        if (elements.adminTabButton) {
+          elements.adminTabButton.classList.toggle('d-none', !show);
+          elements.adminTabButton.disabled = !show;
+          elements.adminTabButton.setAttribute('aria-disabled', String(!show));
+        }
+        if (!show) {
+          setPermissionStatus('Tu usuario no tiene permisos de administración.', 'warning');
+          if (
+            elements.adminTabButton &&
+            elements.adminTabButton.classList.contains('active') &&
+            elements.tabs
+          ) {
+            const fallback = elements.tabs.querySelector('.nav-link:not(.d-none)');
+            if (fallback && fallback !== elements.adminTabButton) {
+              bootstrap.Tab.getOrCreateInstance(fallback).show();
+            }
+          }
+        } else {
           setPermissionStatus('', '');
         }
       }
@@ -1657,6 +1684,8 @@
           className = 'text-warning';
         } else if (tone === 'danger') {
           className = 'text-danger';
+        } else if (tone === 'info') {
+          className = 'text-primary';
         }
         elements.permissionStatus.classList.add(className);
       }
@@ -1674,9 +1703,6 @@
         if (elements.openPermissionsSheetButton) {
           elements.openPermissionsSheetButton.disabled = isLoading;
         }
-        if (elements.openColumnPermissionsSheetButton) {
-          elements.openColumnPermissionsSheetButton.disabled = isLoading;
-        }
         if (elements.columnPermissionUser) {
           elements.columnPermissionUser.disabled = isLoading;
         }
@@ -1692,17 +1718,21 @@
         }
       }
 
-      function loadPermissionAdminData() {
+      function loadPermissionAdminData(options = {}) {
         if (!state.permissions || state.permissions.canManageAccess !== true) {
           togglePermissionsCard(false);
           return;
         }
-        setPermissionAdminLoading(true, 'Cargando configuración de permisos…');
+        const silent = !!(options && options.silent);
+        setPermissionAdminLoading(true, silent ? undefined : 'Cargando configuración de permisos…');
         google.script.run
           .withSuccessHandler((data) => {
             setPermissionAdminLoading(false);
             state.permissionAdmin.loaded = true;
             applyPermissionAdminData(data || {});
+            if (silent) {
+              return;
+            }
             if (state.permissionAdmin.users.length) {
               setPermissionStatus('Permisos cargados correctamente.', 'success');
             } else {
@@ -1739,6 +1769,14 @@
           : users.length
           ? users[0].email
           : '';
+        if (state.permissionAdmin.editingEmail) {
+          const editingUser = users.find((user) => user.email === state.permissionAdmin.editingEmail);
+          if (editingUser) {
+            populatePermissionUserForm(editingUser, { preserveMode: true });
+          } else {
+            resetPermissionUserForm();
+          }
+        }
         renderPermissionUsersTable();
         populateColumnPermissionUserSelect();
         renderColumnPermissionList();
@@ -1767,7 +1805,7 @@
         if (!state.permissionAdmin.users.length) {
           const row = document.createElement('tr');
           const cell = document.createElement('td');
-          cell.colSpan = 3;
+          cell.colSpan = 6;
           cell.className = 'text-muted small';
           cell.textContent = 'Registra un usuario para gestionar accesos.';
           row.appendChild(cell);
@@ -1776,17 +1814,137 @@
         }
         state.permissionAdmin.users.forEach((user) => {
           const row = document.createElement('tr');
+          const statusValue = (user.status || '').toString() || (user.enabled === false ? 'Deshabilitado' : 'Habilitado');
+          const isDisabled = statusValue.toLowerCase() === 'deshabilitado';
+          if (isDisabled) {
+            row.classList.add('table-warning');
+          }
           const emailCell = document.createElement('td');
           emailCell.textContent = user.email || '';
+          const phoneCell = document.createElement('td');
+          phoneCell.textContent = user.phone ? user.phone : '—';
           const roleCell = document.createElement('td');
           roleCell.textContent = normalizeRoleLabel(user.role);
+          const statusCell = document.createElement('td');
+          const statusBadge = document.createElement('span');
+          statusBadge.className = isDisabled
+            ? 'badge bg-warning-subtle text-warning-emphasis'
+            : 'badge bg-success-subtle text-success-emphasis';
+          statusBadge.textContent = isDisabled ? 'Deshabilitado' : 'Habilitado';
+          statusCell.appendChild(statusBadge);
           const notesCell = document.createElement('td');
           notesCell.textContent = user.notes || '';
+          const actionsCell = document.createElement('td');
+          actionsCell.className = 'text-end';
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.className = 'btn btn-link btn-sm text-decoration-none';
+          editButton.dataset.role = 'permission-edit';
+          editButton.dataset.email = user.email || '';
+          editButton.textContent = 'Editar';
+          editButton.disabled = state.permissionAdmin.loading;
+          actionsCell.appendChild(editButton);
           row.appendChild(emailCell);
+          row.appendChild(phoneCell);
           row.appendChild(roleCell);
+          row.appendChild(statusCell);
           row.appendChild(notesCell);
+          row.appendChild(actionsCell);
           tbody.appendChild(row);
         });
+      }
+
+      function resetPermissionUserForm() {
+        if (elements.permissionUserForm) {
+          elements.permissionUserForm.reset();
+        }
+        if (elements.permissionUserEmail) {
+          elements.permissionUserEmail.disabled = false;
+          elements.permissionUserEmail.value = '';
+        }
+        if (elements.permissionUserPhone) {
+          elements.permissionUserPhone.value = '';
+        }
+        if (elements.permissionUserRole) {
+          elements.permissionUserRole.value = 'ADMIN';
+        }
+        if (elements.permissionUserStatus) {
+          elements.permissionUserStatus.value = 'Habilitado';
+        }
+        if (elements.permissionUserNotes) {
+          elements.permissionUserNotes.value = '';
+        }
+        if (elements.permissionUserSubmitButton) {
+          elements.permissionUserSubmitButton.textContent = 'Registrar';
+        }
+        state.permissionAdmin.editingEmail = '';
+      }
+
+      function populatePermissionUserForm(user, options = {}) {
+        if (!user) {
+          return;
+        }
+        state.permissionAdmin.editingEmail = user.email || '';
+        if (elements.permissionUserEmail) {
+          elements.permissionUserEmail.value = user.email || '';
+          elements.permissionUserEmail.disabled = true;
+        }
+        if (elements.permissionUserPhone) {
+          elements.permissionUserPhone.value = user.phone || '';
+        }
+        if (elements.permissionUserRole) {
+          const roleValue = (user.role || 'LECTOR').toUpperCase();
+          elements.permissionUserRole.value = roleValue;
+        }
+        if (elements.permissionUserStatus) {
+          const statusValue = user.status || (user.enabled === false ? 'Deshabilitado' : 'Habilitado');
+          elements.permissionUserStatus.value = statusValue;
+        }
+        if (elements.permissionUserNotes) {
+          elements.permissionUserNotes.value = user.notes || '';
+        }
+        if (elements.permissionUserSubmitButton) {
+          elements.permissionUserSubmitButton.textContent = 'Actualizar';
+        }
+      }
+
+      function handlePermissionUserReset(event) {
+        event.preventDefault();
+        if (state.permissionAdmin.loading) {
+          return;
+        }
+        resetPermissionUserForm();
+        setPermissionStatus('Formulario listo para registrar un nuevo usuario.', 'info');
+      }
+
+      function handlePermissionUserTableClick(event) {
+        const button = event.target.closest('button[data-role="permission-edit"]');
+        if (!button || state.permissionAdmin.loading) {
+          return;
+        }
+        const email = (button.dataset.email || '').toLowerCase();
+        if (!email) {
+          return;
+        }
+        const user = state.permissionAdmin.users.find((candidate) => candidate.email === email);
+        if (!user) {
+          setPermissionStatus('No se encontró el usuario seleccionado.', 'warning');
+          return;
+        }
+        populatePermissionUserForm(user);
+        if (elements.permissionUserSubmitButton) {
+          elements.permissionUserSubmitButton.textContent = 'Actualizar';
+        }
+        state.permissionAdmin.selectedEmail = email;
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.value = email;
+        }
+        renderColumnPermissionList();
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled =
+            state.permissionAdmin.loading || !state.permissionAdmin.selectedEmail;
+        }
+        setPermissionStatus(`Editando permisos para ${user.email}.`, 'info');
       }
 
       function populateColumnPermissionUserSelect() {
@@ -1803,8 +1961,16 @@
         state.permissionAdmin.users.forEach((user) => {
           const option = document.createElement('option');
           option.value = user.email || '';
-          const label = normalizeRoleLabel(user.role);
-          option.textContent = label ? `${user.email} · ${label}` : user.email;
+          const roleLabel = normalizeRoleLabel(user.role);
+          const statusValue = (user.status || '').toString() || (user.enabled === false ? 'Deshabilitado' : 'Habilitado');
+          let optionLabel = user.email || '';
+          if (roleLabel) {
+            optionLabel += ` · ${roleLabel}`;
+          }
+          if (statusValue.toLowerCase() === 'deshabilitado') {
+            optionLabel += ' · Deshabilitado';
+          }
+          option.textContent = optionLabel.trim();
           select.appendChild(option);
         });
         if (selected && state.permissionAdmin.users.some((user) => user.email === selected)) {
@@ -1919,27 +2085,40 @@
         if (state.permissionAdmin.loading) {
           return;
         }
-        const email = elements.permissionUserEmail.value.trim().toLowerCase();
-        const role = elements.permissionUserRole.value.trim().toUpperCase();
-        const notes = elements.permissionUserNotes.value.trim();
+        const email = elements.permissionUserEmail
+          ? elements.permissionUserEmail.value.trim().toLowerCase()
+          : '';
         if (!email) {
           setPermissionStatus('Ingresa un correo electrónico válido.', 'warning');
           return;
         }
-        setPermissionAdminLoading(true, 'Guardando usuario…');
+        const phone = elements.permissionUserPhone ? elements.permissionUserPhone.value.trim() : '';
+        const role = elements.permissionUserRole
+          ? elements.permissionUserRole.value.trim().toUpperCase()
+          : 'LECTOR';
+        const status = elements.permissionUserStatus
+          ? (elements.permissionUserStatus.value || 'Habilitado').trim()
+          : 'Habilitado';
+        const notes = elements.permissionUserNotes ? elements.permissionUserNotes.value.trim() : '';
+        const payload = { email, phone, role, status, notes };
+        const isUpdate = state.permissionAdmin.editingEmail === email;
+        setPermissionAdminLoading(true, isUpdate ? 'Actualizando usuario…' : 'Registrando usuario…');
         google.script.run
           .withSuccessHandler(() => {
-            if (elements.permissionUserForm) {
-              elements.permissionUserForm.reset();
-            }
+            setPermissionAdminLoading(false);
+            setPermissionStatus(
+              isUpdate ? `Usuario ${email} actualizado.` : `Usuario ${email} registrado.`,
+              'success'
+            );
+            resetPermissionUserForm();
             state.permissionAdmin.loaded = false;
-            loadPermissionAdminData();
+            loadPermissionAdminData({ silent: true });
           })
           .withFailureHandler((error) => {
             setPermissionAdminLoading(false);
             showError(error);
           })
-          .upsertPermissionUser({ email, role, notes });
+          .upsertPermissionUser(payload);
       }
 
       function handleOpenPermissionsSheet() {
