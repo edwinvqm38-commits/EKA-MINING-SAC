@@ -938,15 +938,14 @@
         const active = context && context.activeInvitation ? context.activeInvitation : null;
         if (!active) {
           showAlert('danger', 'No se pudo obtener la información de la hoja.');
-          showFormCards(false);
+          resetFormData();
+          showFormCards(true);
           return;
         }
 
         if (!active.rowNumber) {
-          state.rowNumber = null;
-          state.values = {};
-          state.baseline = {};
-          showFormCards(false);
+          resetFormData();
+          showFormCards(true);
           if (active.sheetName && active.sheetName !== active.expectedSheetName) {
             showAlert(
               'warning',
@@ -955,11 +954,12 @@
           } else {
             showAlert('info', 'Selecciona una fila de datos (por debajo del encabezado) para trabajar desde el panel.');
           }
-          updateActionState();
+          setStatus('Formulario en modo espera hasta que selecciones una fila.', 'info');
           return;
         }
 
         showFormCards(true);
+        hideAlert();
         applyData(active.data || {}, active.rowNumber);
       }
 
@@ -998,6 +998,33 @@
         } else {
           clearStatus();
         }
+        updateActionState();
+      }
+
+      function resetFormData() {
+        state.rowNumber = null;
+        state.baseline = {};
+        state.values = {};
+
+        FIELD_SECTIONS.forEach((section) => {
+          section.fields.forEach((field) => {
+            const alias = field.alias;
+            if (field.valueType === 'boolean') {
+              state.baseline[alias] = null;
+              state.values[alias] = null;
+            } else if (field.valueType === 'link') {
+              const emptyLink = { url: '', text: '' };
+              state.baseline[alias] = { ...emptyLink };
+              state.values[alias] = { ...emptyLink };
+            } else {
+              state.baseline[alias] = '';
+              state.values[alias] = '';
+            }
+          });
+        });
+
+        renderAllFields();
+        updateSummaryCard({});
         updateActionState();
       }
 
@@ -1047,10 +1074,27 @@
       }
 
       function updateSummaryCard(data) {
-        elements.summaryTitle.textContent = data.invitation_id ? `ID ${data.invitation_id}` : 'Sin ID asignado';
-        elements.summarySubtitle.textContent = data.cliente ? data.cliente : 'Cliente no especificado';
-        elements.summaryBadge.textContent = data.cotizacion ? `Cotización ${data.cotizacion}` : `Fila ${state.rowNumber}`;
-        elements.summaryDescription.textContent = data.descripcion ? data.descripcion : 'Sin descripción registrada.';
+        const hasRow = !!state.rowNumber;
+        elements.summaryTitle.textContent = data.invitation_id
+          ? `ID ${data.invitation_id}`
+          : hasRow
+          ? 'Sin ID asignado'
+          : 'Formulario disponible';
+        elements.summarySubtitle.textContent = data.cliente
+          ? data.cliente
+          : hasRow
+          ? 'Cliente no especificado'
+          : 'Selecciona una fila para cargar los datos.';
+        elements.summaryBadge.textContent = data.cotizacion
+          ? `Cotización ${data.cotizacion}`
+          : hasRow && state.rowNumber
+          ? `Fila ${state.rowNumber}`
+          : 'Sin fila seleccionada';
+        elements.summaryDescription.textContent = data.descripcion
+          ? data.descripcion
+          : hasRow
+          ? 'Sin descripción registrada.'
+          : 'Utiliza los botones superiores para actualizar la fila que selecciones en la hoja.';
 
         elements.summaryStatuses.innerHTML = '';
         const statuses = [
