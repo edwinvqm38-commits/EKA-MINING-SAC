@@ -95,6 +95,25 @@
         color: #4338ca;
       }
 
+      .field-group-card {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.18);
+        border-radius: 14px;
+      }
+
+      .field-group-card .group-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #3730a3;
+        margin-bottom: 0.35rem;
+      }
+
+      .field-group-card .group-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.75rem;
+      }
+
       .loading-overlay {
         position: absolute;
         inset: 0;
@@ -138,12 +157,17 @@
   </head>
   <body>
     <div class="sidebar-app container-fluid py-3">
-      <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+      <div class="d-flex align-items-start justify-content-between gap-2 mb-3 flex-wrap">
         <div>
           <h1 class="h5 fw-semibold mb-1">Gestión de Invitaciones</h1>
           <div class="text-muted small">Hoja configurada: <span class="fw-semibold" id="configuredSheet"><?!= sheetName ?></span></div>
         </div>
-        <button class="btn btn-outline-secondary btn-sm" id="reloadButton" type="button">Recargar</button>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-primary btn-sm" id="dictionaryButton" type="button">
+            Diccionario columnas
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="reloadButton" type="button">Recargar</button>
+        </div>
       </div>
 
       <div id="alertContainer"></div>
@@ -208,12 +232,21 @@
     <script>
       const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
+      const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
+      const CUSTOM_OPTION_VALUE = '__custom_option__';
+      const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
 
       const state = {
         rowNumber: null,
         values: {},
         baseline: {},
         loading: false,
+        options: {},
+        permissions: {
+          canEdit: true,
+          canSync: true,
+          canDelete: true,
+        },
       };
 
       const elements = {
@@ -229,6 +262,7 @@
         tabs: document.getElementById('sectionTabs'),
         tabContent: document.getElementById('sectionTabContent'),
         reloadButton: document.getElementById('reloadButton'),
+        dictionaryButton: document.getElementById('dictionaryButton'),
         acceptButton: document.getElementById('acceptButton'),
         updateButton: document.getElementById('updateButton'),
         cancelButton: document.getElementById('cancelButton'),
@@ -243,6 +277,7 @@
       document.addEventListener('DOMContentLoaded', () => {
         document.title = 'Gestión de Invitaciones';
         buildTabs();
+        initializeStaticOptions();
         attachEventHandlers();
         loadContext();
       });
@@ -289,10 +324,16 @@
           const row = document.createElement('div');
           row.className = 'row g-3';
           row.dataset.sectionId = section.id;
+          const groupContainers = {};
 
           section.fields.forEach((field) => {
             const fieldElement = createFieldElement(field);
-            row.appendChild(fieldElement);
+            if (field.group) {
+              const groupRow = ensureGroupContainer(row, groupContainers, field);
+              groupRow.appendChild(fieldElement);
+            } else {
+              row.appendChild(fieldElement);
+            }
           });
 
           pane.appendChild(row);
@@ -300,8 +341,58 @@
         });
       }
 
+      function ensureGroupContainer(sectionRow, cache, field) {
+        const groupId = field.group;
+        if (cache[groupId]) {
+          return cache[groupId];
+        }
+        const wrapper = document.createElement('div');
+        wrapper.className = 'col-12';
+        wrapper.dataset.group = groupId;
+
+        const card = document.createElement('div');
+        card.className = 'field-group-card p-3 h-100';
+
+        const title = document.createElement('div');
+        title.className = 'group-title';
+        title.textContent = field.groupLabel || field.label || groupId;
+        card.appendChild(title);
+
+        if (field.groupDescription) {
+          const description = document.createElement('div');
+          description.className = 'group-description mb-2';
+          description.textContent = field.groupDescription;
+          card.appendChild(description);
+        }
+
+        const innerRow = document.createElement('div');
+        innerRow.className = 'row g-3 mt-1';
+        card.appendChild(innerRow);
+
+        wrapper.appendChild(card);
+        sectionRow.appendChild(wrapper);
+        cache[groupId] = innerRow;
+        return innerRow;
+      }
+
+      function resolveColumnClass(field) {
+        if (field.columnClass) {
+          return field.columnClass;
+        }
+        if (field.width === 12) {
+          return 'col-12';
+        }
+        if (field.width === 4) {
+          return 'col-12 col-md-6 col-xl-4';
+        }
+        if (field.width === 3) {
+          return 'col-12 col-md-4';
+        }
+        return 'col-12 col-lg-6';
+      }
+
       function createFieldElement(field) {
-        const columnClass = field.width === 12 ? 'col-12' : 'col-12 col-sm-6';
+        const columnClass = resolveColumnClass(field);
         const wrapper = document.createElement('div');
         wrapper.className = columnClass;
         wrapper.dataset.alias = field.alias;
@@ -342,6 +433,13 @@
             control.type = 'number';
             control.className = 'form-control';
             control.step = 'any';
+            break;
+          case 'select':
+            control = document.createElement('select');
+            control.className = 'form-select';
+            if (field.allowCustom) {
+              control.dataset.allowCustom = 'true';
+            }
             break;
           case 'boolean':
             control = document.createElement('select');
@@ -441,8 +539,238 @@
         return container;
       }
 
+      function buildFieldLookup(sections) {
+        const lookup = {};
+        sections.forEach((section) => {
+          section.fields.forEach((field) => {
+            lookup[field.alias] = field;
+          });
+        });
+        return lookup;
+      }
+
+      function initializeStaticOptions() {
+        Object.keys(FIELD_LOOKUP).forEach((alias) => {
+          const field = FIELD_LOOKUP[alias];
+          if (field.valueType !== 'select') {
+            return;
+          }
+          const staticOptions = normalizeFieldOptions(field.options || []);
+          if (!state.options[alias]) {
+            state.options[alias] = staticOptions.slice();
+          } else {
+            mergeOptions(alias, staticOptions);
+          }
+        });
+      }
+
+      function normalizeFieldOptions(options) {
+        if (!Array.isArray(options)) {
+          return [];
+        }
+        return options
+          .map((option) => {
+            if (option === null || option === undefined) {
+              return null;
+            }
+            if (typeof option === 'string' || typeof option === 'number') {
+              const value = String(option).trim();
+              if (!value) {
+                return null;
+              }
+              return { value, label: value };
+            }
+            if (typeof option === 'object') {
+              const rawValue = option.value !== undefined && option.value !== null ? String(option.value).trim() : '';
+              if (!rawValue) {
+                return null;
+              }
+              const label = option.label !== undefined && option.label !== null && option.label !== '' ? String(option.label) : rawValue;
+              return { value: rawValue, label: label };
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      function mergeOptions(alias, newOptions) {
+        if (!Array.isArray(newOptions) || newOptions.length === 0) {
+          return;
+        }
+        if (!state.options[alias]) {
+          state.options[alias] = [];
+        }
+        const existing = state.options[alias];
+        const seen = new Set(existing.map((option) => option.value.toLowerCase()));
+        newOptions.forEach((option) => {
+          const key = option.value.toLowerCase();
+          if (!seen.has(key)) {
+            existing.push({ value: option.value, label: option.label });
+            seen.add(key);
+          }
+        });
+      }
+
+      function sortOptions(alias) {
+        if (!state.options[alias]) {
+          return;
+        }
+        const field = FIELD_LOOKUP[alias];
+        const staticOptions = normalizeFieldOptions(field && field.options ? field.options : []);
+        const staticOrder = new Map();
+        staticOptions.forEach((option, index) => {
+          staticOrder.set(option.value.toLowerCase(), index);
+        });
+        state.options[alias].sort((a, b) => {
+          const aKey = a.value.toLowerCase();
+          const bKey = b.value.toLowerCase();
+          const aIndex = staticOrder.has(aKey) ? staticOrder.get(aKey) : Number.POSITIVE_INFINITY;
+          const bIndex = staticOrder.has(bKey) ? staticOrder.get(bKey) : Number.POSITIVE_INFINITY;
+          if (aIndex !== bIndex) {
+            return aIndex - bIndex;
+          }
+          if (aIndex !== Number.POSITIVE_INFINITY) {
+            return 0;
+          }
+          const aLabel = a.label.toLowerCase();
+          const bLabel = b.label.toLowerCase();
+          if (aLabel < bLabel) {
+            return -1;
+          }
+          if (aLabel > bLabel) {
+            return 1;
+          }
+          return 0;
+        });
+      }
+
+      function getOptionsForField(alias) {
+        if (!state.options[alias]) {
+          state.options[alias] = [];
+        }
+        return state.options[alias];
+      }
+
+      function populateSelectElement(select, options, field) {
+        const placeholderText = field.placeholder || 'Selecciona una opción…';
+        const previousValue = select.value;
+        select.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = placeholderText;
+        select.appendChild(placeholder);
+
+        options.forEach((option) => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.value;
+          optionElement.textContent = option.label;
+          select.appendChild(optionElement);
+        });
+
+        if (field.allowCustom) {
+          const customOption = document.createElement('option');
+          customOption.value = CUSTOM_OPTION_VALUE;
+          customOption.textContent = '➕ Agregar nuevo valor…';
+          select.appendChild(customOption);
+        }
+
+        if (previousValue) {
+          select.value = previousValue;
+        }
+      }
+
+      function addCustomOption(alias, value) {
+        const trimmed = value ? value.trim() : '';
+        if (!trimmed) {
+          return;
+        }
+        mergeOptions(alias, [{ value: trimmed, label: trimmed }]);
+        sortOptions(alias);
+      }
+
+      function renderSelectField(field) {
+        const alias = field.alias;
+        const container = elements.formCard.querySelector(`[data-alias="${alias}"]`);
+        if (!container) {
+          return;
+        }
+        const select = container.querySelector('select');
+        if (!select) {
+          return;
+        }
+        const options = getOptionsForField(alias);
+        populateSelectElement(select, options, field);
+        const rawValue = state.values[alias];
+        const stringValue = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+        if (stringValue && !options.some((option) => option.value === stringValue)) {
+          addCustomOption(alias, stringValue);
+          populateSelectElement(select, getOptionsForField(alias), field);
+        }
+        select.value = stringValue;
+        if (select.dataset.allowCustom === 'true') {
+          select.dataset.previousValue = select.value || '';
+        }
+      }
+
+      function applyDropdownOptions(optionMap) {
+        if (!optionMap) {
+          return;
+        }
+        Object.keys(optionMap).forEach((alias) => {
+          const field = FIELD_LOOKUP[alias];
+          if (!field || field.valueType !== 'select') {
+            return;
+          }
+          const normalized = normalizeFieldOptions(optionMap[alias]);
+          mergeOptions(alias, normalized);
+          sortOptions(alias);
+        });
+      }
+
+      function normalizePermissions(permissions) {
+        if (!permissions) {
+          return { canEdit: true, canSync: true, canDelete: true, role: '' };
+        }
+        return {
+          canEdit: permissions.canEdit !== false,
+          canSync: permissions.canSync !== false,
+          canDelete: permissions.canDelete !== false,
+          role: permissions.role || '',
+        };
+      }
+
+      function applyPermissions(permissions) {
+        const normalized = normalizePermissions(permissions);
+        state.permissions = normalized;
+        if (!elements.formCard) {
+          updateActionState();
+          return;
+        }
+        const canEdit = normalized.canEdit;
+        const editableInputs = elements.formCard.querySelectorAll('input, textarea, select');
+        editableInputs.forEach((input) => {
+          const role = input.dataset ? input.dataset.role : '';
+          if (role === 'link-open') {
+            input.disabled = false;
+            return;
+          }
+          if (role === 'link-clear') {
+            input.disabled = !canEdit;
+            return;
+          }
+          input.disabled = !canEdit;
+        });
+        const linkClearButtons = elements.formCard.querySelectorAll('button[data-role="link-clear"]');
+        linkClearButtons.forEach((button) => {
+          button.disabled = !canEdit;
+        });
+        updateActionState();
+      }
+
       function attachEventHandlers() {
         elements.reloadButton.addEventListener('click', () => loadContext());
+        elements.dictionaryButton.addEventListener('click', openDictionary);
         elements.acceptButton.addEventListener('click', () => submitAction('accept'));
         elements.updateButton.addEventListener('click', () => submitAction('save'));
         elements.cancelButton.addEventListener('click', resetFormToBaseline);
@@ -450,6 +778,7 @@
 
         elements.formCard.addEventListener('input', handleFieldInput);
         elements.formCard.addEventListener('change', handleFieldInput);
+        elements.formCard.addEventListener('focusin', handleFieldFocus);
         elements.formCard.addEventListener('click', handleLinkButtons);
       }
 
@@ -471,6 +800,13 @@
         }
 
         let value = target.value;
+        if (type === 'select') {
+          if (target.dataset.allowCustom === 'true' && value === CUSTOM_OPTION_VALUE) {
+            handleCustomSelectValue(target, alias);
+            return;
+          }
+          value = value === undefined || value === null ? '' : String(value);
+        }
         if (type === 'boolean') {
           if (value === '') {
             value = null;
@@ -479,6 +815,39 @@
           }
         }
         setFieldValue(alias, value);
+      }
+
+      function handleFieldFocus(event) {
+        const target = event.target;
+        if (!target || !target.dataset) {
+          return;
+        }
+        if (target.matches('select[data-allow-custom="true"]')) {
+          target.dataset.previousValue = target.value || '';
+        }
+      }
+
+      function handleCustomSelectValue(select, alias) {
+        const field = FIELD_LOOKUP[alias];
+        const label = field && field.label ? field.label : alias;
+        const response = prompt(`Nuevo valor para "${label}"`);
+        if (response === null) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        const trimmed = response.trim();
+        if (!trimmed) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        addCustomOption(alias, trimmed);
+        if (field) {
+          renderSelectField(field);
+        }
+        select.value = trimmed;
+        setFieldValue(alias, trimmed);
       }
 
       function handleLinkButtons(event) {
@@ -516,7 +885,11 @@
       }
 
       function setFieldValue(alias, value) {
-        state.values[alias] = value === undefined ? '' : value;
+        if (typeof value === 'string') {
+          state.values[alias] = value;
+        } else {
+          state.values[alias] = value === undefined ? '' : value;
+        }
         updateActionState();
       }
 
@@ -525,6 +898,20 @@
         if (openButton) {
           openButton.disabled = !hasUrl;
         }
+      }
+
+      function openDictionary() {
+        setLoading(true, `Abriendo "${DICTIONARY_SHEET_NAME}"…`);
+        google.script.run
+          .withSuccessHandler(() => {
+            setLoading(false);
+            setStatus(`Se abrió la hoja "${DICTIONARY_SHEET_NAME}" en el libro.`, 'success');
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .openColumnDictionarySheet();
       }
 
       function loadContext() {
@@ -544,6 +931,10 @@
       function processContext(context) {
         clearStatus();
         hideAlert();
+        applyPermissions(context && context.permissions ? context.permissions : null);
+        if (context && context.dropdownOptions) {
+          applyDropdownOptions(context.dropdownOptions);
+        }
         const active = context && context.activeInvitation ? context.activeInvitation : null;
         if (!active) {
           showAlert('danger', 'No se pudo obtener la información de la hoja.');
@@ -602,7 +993,11 @@
 
         renderAllFields();
         updateSummaryCard(data || {});
-        clearStatus();
+        if (state.permissions && state.permissions.canEdit === false) {
+          setStatus('Panel en modo lectura. Solicita acceso en la hoja de permisos.', 'warning');
+        } else {
+          clearStatus();
+        }
         updateActionState();
       }
 
@@ -611,6 +1006,8 @@
           section.fields.forEach((field) => {
             if (field.valueType === 'link') {
               renderLinkField(field.alias);
+            } else if (field.valueType === 'select') {
+              renderSelectField(field);
             } else {
               renderStandardField(field);
             }
@@ -702,12 +1099,18 @@
         const hasRow = !!state.rowNumber;
         const dirty = hasRow && isDirty();
         const disabled = !hasRow || state.loading;
+        const canEdit = state.permissions && state.permissions.canEdit !== false;
+        const canSync = state.permissions && state.permissions.canSync !== false;
+        const canDelete = state.permissions && state.permissions.canDelete !== false;
 
-        elements.acceptButton.disabled = disabled;
-        elements.updateButton.disabled = disabled || !dirty;
+        elements.acceptButton.disabled = disabled || !canSync;
+        elements.updateButton.disabled = disabled || !dirty || !canEdit;
         elements.cancelButton.disabled = disabled || !dirty;
-        elements.deleteButton.disabled = disabled;
+        elements.deleteButton.disabled = disabled || !canDelete;
         elements.reloadButton.disabled = state.loading;
+        if (elements.dictionaryButton) {
+          elements.dictionaryButton.disabled = state.loading;
+        }
       }
 
       function buildUpdatesPayload() {
@@ -728,6 +1131,14 @@
 
       function submitAction(mode) {
         if (!state.rowNumber) {
+          return;
+        }
+        if (mode === 'accept' && state.permissions && state.permissions.canSync === false) {
+          setStatus('No tienes permisos para sincronizar con Supabase.', 'error');
+          return;
+        }
+        if (mode !== 'accept' && state.permissions && state.permissions.canEdit === false) {
+          setStatus('No tienes permisos para actualizar esta invitación.', 'error');
           return;
         }
         const updates = buildUpdatesPayload();
@@ -780,6 +1191,10 @@
         if (!state.rowNumber || state.loading) {
           return;
         }
+        if (state.permissions && state.permissions.canDelete === false) {
+          setStatus('Solo un administrador puede eliminar registros desde este panel.', 'error');
+          return;
+        }
         const confirmed = confirm(
           `¿Eliminar la fila ${state.rowNumber} de la hoja "${SHEET_NAME}"? Esta acción no se puede deshacer.`
         );
@@ -824,6 +1239,8 @@
           elements.statusMessage.classList.add('text-success');
         } else if (tone === 'error') {
           elements.statusMessage.classList.add('text-danger');
+        } else if (tone === 'warning') {
+          elements.statusMessage.classList.add('text-warning');
         } else {
           elements.statusMessage.classList.add('text-muted');
         }

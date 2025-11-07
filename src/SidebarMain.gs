@@ -2,6 +2,47 @@ const SIDEBAR_TITLE = 'Gestión de Invitaciones';
 const SHEET_NAME = 'Invitaciones';
 const HEADER_ROW = 1;
 
+const TIPO_SERVICIO_OPTIONS = [
+  'Cotización Formal',
+  'Cotización Simple',
+  'Licitación',
+  'Parada de Planta',
+  'Adicional',
+  'Adenda',
+];
+
+const ESTADO_COTIZACION_OPTIONS = [
+  'Rev. Bases',
+  'Visita Técnica',
+  'Consultas',
+  'Abs. Consultas',
+  'Elab. Prop. Téc.',
+  'Elab. Prop. Eco.',
+  'Finalizado',
+  'Enviado',
+  'No se Cotiza',
+  'Observado',
+];
+
+const ESTADO_PROPUESTA_OPTIONS = [
+  'En elaboración',
+  'Enviada',
+  'En evaluación',
+  'Adjudicada',
+  'No adjudicada',
+  'Observada',
+  'Cancelada',
+];
+
+const DYNAMIC_OPTION_ALIASES = [
+  'tipo_servicio',
+  'estado_cotizacion',
+  'estado_propuesta',
+  'cliente',
+  'zona_trabajo',
+  'solicitante',
+];
+
 const FIELD_SECTIONS = [
   {
     id: 'general',
@@ -36,22 +77,31 @@ const FIELD_SECTIONS = [
         alias: 'tipo_servicio',
         header: 'Tipo de Servicio',
         label: 'Tipo de Servicio',
-        valueType: 'text',
+        valueType: 'select',
         width: 6,
+        options: TIPO_SERVICIO_OPTIONS,
+        allowCustom: true,
+        helper: 'Selecciona un tipo existente o agrega uno nuevo.',
       },
       {
         alias: 'estado_cotizacion',
         header: 'Estado de Cotización',
         label: 'Estado de Cotización',
-        valueType: 'text',
+        valueType: 'select',
         width: 6,
+        options: ESTADO_COTIZACION_OPTIONS,
+        allowCustom: true,
+        helper: 'Etapa actual de la cotización según el flujo interno.',
       },
       {
         alias: 'estado_propuesta',
         header: 'Estado de Propuesta',
         label: 'Estado de Propuesta',
-        valueType: 'text',
+        valueType: 'select',
         width: 6,
+        options: ESTADO_PROPUESTA_OPTIONS,
+        allowCustom: true,
+        helper: 'Selecciona el estado comercial de la propuesta enviada.',
       },
       {
         alias: 'estado_pipeline',
@@ -59,6 +109,7 @@ const FIELD_SECTIONS = [
         label: 'Estado Pipeline',
         valueType: 'text',
         width: 6,
+        helper: 'Consulta el "Diccionario Invitaciones" para las definiciones de pipeline.',
       },
       {
         alias: 'fecha_registro',
@@ -71,15 +122,21 @@ const FIELD_SECTIONS = [
         alias: 'cliente',
         header: 'Cliente',
         label: 'Cliente',
-        valueType: 'text',
+        valueType: 'select',
         width: 6,
+        optionsSource: 'cliente',
+        allowCustom: true,
+        helper: 'Selecciona un cliente existente o agrega uno nuevo desde el desplegable.',
       },
       {
         alias: 'zona_trabajo',
         header: 'Zona de Trabajo',
         label: 'Zona de Trabajo',
-        valueType: 'text',
+        valueType: 'select',
         width: 6,
+        optionsSource: 'zona_trabajo',
+        allowCustom: true,
+        helper: 'Define la zona o proyecto donde se ejecuta el servicio.',
       },
     ],
   },
@@ -92,65 +149,92 @@ const FIELD_SECTIONS = [
         alias: 'solicitante',
         header: 'Solicitante',
         label: 'Solicitante',
-        valueType: 'text',
-        width: 6,
+        valueType: 'select',
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        optionsSource: 'solicitante',
+        allowCustom: true,
+        helper: 'Selecciona un solicitante existente o agrega uno nuevo.',
+        group: 'solicitante',
+        groupLabel: 'Solicitante',
+        groupDescription: 'Contacto principal que gestiona la invitación.',
       },
       {
         alias: 'correo_solicitante',
         header: 'Correo del Solicitante',
         label: 'Correo del Solicitante',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
         placeholder: 'correo@empresa.com',
+        group: 'solicitante',
       },
       {
         alias: 'telefono_solicitante',
         header: 'Teléfono del Solicitante',
         label: 'Teléfono del Solicitante',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'solicitante',
       },
       {
         alias: 'responsable_tecnico',
         header: 'Responsable Técnico',
         label: 'Responsable Técnico',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_tecnico',
+        groupLabel: 'Responsable técnico',
+        groupDescription: 'Profesional a cargo de la coordinación técnica.',
       },
       {
         alias: 'correo_responsable_tecnico',
         header: 'Correo del Resp. Téc.',
         label: 'Correo del Resp. Téc.',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_tecnico',
       },
       {
         alias: 'telefono_responsable_tecnico',
         header: 'Teléfono del Resp. Téc.',
         label: 'Teléfono del Resp. Téc.',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_tecnico',
       },
       {
         alias: 'responsable_economico',
         header: 'Responsable Económico',
         label: 'Responsable Económico',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_economico',
+        groupLabel: 'Responsable económico',
+        groupDescription: 'Contacto financiero y comercial del proceso.',
       },
       {
         alias: 'correo_responsable_economico',
         header: 'Correo del Resp. Eco.',
         label: 'Correo del Resp. Eco.',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_economico',
       },
       {
         alias: 'telefono_responsable_economico',
         header: 'Teléfono del Resp. Eco.',
         label: 'Teléfono del Resp. Eco.',
         valueType: 'text',
-        width: 6,
+        width: 12,
+        columnClass: 'col-12 col-lg-4',
+        group: 'responsable_economico',
       },
     ],
   },
@@ -386,6 +470,8 @@ const BOOLEAN_TRUE_VALUES = ['true', 'sí', 'si', 'yes', 'y', '1', 'verdadero'];
 const BOOLEAN_FALSE_VALUES = ['false', 'no', '0', 'n', 'falso'];
 
 function onOpen() {
+  ensurePermissionsSheet();
+  ensureColumnDictionarySheet();
   SpreadsheetApp.getUi()
     .createMenu('PMO • EKA')
     .addItem('Abrir panel de invitaciones', 'showSidebar')
@@ -394,9 +480,12 @@ function onOpen() {
 }
 
 function showSidebar() {
+  ensurePermissionsSheet();
+  ensureColumnDictionarySheet();
   const template = HtmlService.createTemplateFromFile('Sidebar');
   template.sheetName = getInvitationSheet().getName();
   template.fieldSectionsJson = JSON.stringify(FIELD_SECTIONS);
+  template.dictionarySheetName = COLUMN_DICTIONARY_SHEET_NAME;
   const htmlOutput = template
     .evaluate()
     .setTitle(SIDEBAR_TITLE)
@@ -494,6 +583,63 @@ function getActiveInvitation() {
     expectedSheetName: SHEET_NAME,
     data: getRowData(row),
   };
+}
+
+function buildDropdownOptions() {
+  const options = {};
+  DYNAMIC_OPTION_ALIASES.forEach(function (alias) {
+    options[alias] = collectDistinctColumnValues(alias);
+  });
+  return options;
+}
+
+function collectDistinctColumnValues(alias) {
+  const headerName = COLUMN_MAP[alias];
+  if (!headerName) {
+    return [];
+  }
+  const sheet = getInvitationSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= HEADER_ROW) {
+    return [];
+  }
+  const headers = getHeaders();
+  const columnIndex = headers.indexOf(headerName);
+  if (columnIndex === -1) {
+    return [];
+  }
+  const rowCount = lastRow - HEADER_ROW;
+  const range = sheet.getRange(HEADER_ROW + 1, columnIndex + 1, rowCount, 1);
+  const values = range
+    .getDisplayValues()
+    .map(function (row) {
+      const value = row[0];
+      return value === null || value === undefined ? '' : String(value).trim();
+    })
+    .filter(function (value) {
+      return value !== '';
+    });
+  const seen = {};
+  const unique = [];
+  values.forEach(function (value) {
+    const key = value.toLowerCase();
+    if (!seen[key]) {
+      seen[key] = true;
+      unique.push(value);
+    }
+  });
+  unique.sort(function (a, b) {
+    const aKey = a.toLowerCase();
+    const bKey = b.toLowerCase();
+    if (aKey < bKey) {
+      return -1;
+    }
+    if (aKey > bKey) {
+      return 1;
+    }
+    return 0;
+  });
+  return unique;
 }
 
 function updateInvitationRow(rowNumber, updates) {
@@ -770,6 +916,7 @@ function extractUrlFromRichText(richText) {
 }
 
 function syncInvitationRow(rowNumber) {
+  assertUserCanSyncInvitations();
   if (!rowNumber || rowNumber <= HEADER_ROW) {
     throw new Error('Selecciona una fila válida en la hoja "' + SHEET_NAME + '".');
   }
@@ -793,14 +940,19 @@ function syncActiveInvitation() {
 }
 
 function getSidebarContext() {
+  const permissions = getCurrentUserPermissions();
   return {
     fieldSections: FIELD_SECTIONS,
     activeInvitation: getActiveInvitation(),
     sheetName: SHEET_NAME,
+    dropdownOptions: buildDropdownOptions(),
+    permissions: permissions,
+    dictionarySheetName: COLUMN_DICTIONARY_SHEET_NAME,
   };
 }
 
 function saveInvitation(request) {
+  assertUserCanEditInvitations();
   const rowNumber = request && request.rowNumber;
   const updates = (request && request.updates) || {};
   if (!rowNumber || rowNumber <= HEADER_ROW) {
@@ -814,6 +966,7 @@ function saveInvitation(request) {
 }
 
 function acceptInvitation(request) {
+  assertUserCanSyncInvitations();
   const saved = saveInvitation(request);
   const syncResult = syncInvitationRow(saved.rowNumber);
   return {
@@ -824,6 +977,7 @@ function acceptInvitation(request) {
 }
 
 function deleteInvitation(request) {
+  assertUserCanDeleteInvitations();
   const rowNumber = request && request.rowNumber;
   if (!rowNumber || rowNumber <= HEADER_ROW) {
     throw new Error('Selecciona una fila válida para eliminar.');
