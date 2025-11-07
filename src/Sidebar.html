@@ -153,6 +153,33 @@
           min-width: 100%;
         }
       }
+
+      .field-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.08);
+        color: #312e81;
+        margin-top: 0.4rem;
+      }
+
+      .field-option-chip .color-dot {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .form-control[readonly],
+      .form-control[disabled],
+      .form-select[disabled] {
+        background-color: #f3f4f6;
+      }
     </style>
   </head>
   <body>
@@ -230,10 +257,11 @@
       crossorigin="anonymous"
     ></script>
     <script>
-      const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
+      const FIELD_SECTIONS = JSON.parse(<?!= JSON.stringify(fieldSectionsJson) ?>);
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
       const CUSTOM_OPTION_VALUE = '__custom_option__';
+      const CUSTOM_OPTION_REMOVE = '__remove_option__';
       const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
 
       const state = {
@@ -242,6 +270,7 @@
         baseline: {},
         loading: false,
         options: {},
+        contactDirectory: {},
         permissions: {
           canEdit: true,
           canSync: true,
@@ -327,6 +356,9 @@
           const groupContainers = {};
 
           section.fields.forEach((field) => {
+            if (field.hidden) {
+              return;
+            }
             const fieldElement = createFieldElement(field);
             if (field.group) {
               const groupRow = ensureGroupContainer(row, groupContainers, field);
@@ -397,6 +429,9 @@
         wrapper.className = columnClass;
         wrapper.dataset.alias = field.alias;
         wrapper.dataset.type = field.valueType;
+        if (field.palette) {
+          wrapper.dataset.palette = 'true';
+        }
 
         const label = document.createElement('label');
         label.className = 'form-label';
@@ -467,9 +502,17 @@
           if (field.placeholder) {
             control.placeholder = field.placeholder;
           }
+          if (field.readOnly) {
+            control.readOnly = true;
+            control.tabIndex = -1;
+          }
           wrapper.appendChild(control);
         } else {
           wrapper.appendChild(control);
+        }
+
+        if (field.readOnly && field.valueType === 'select') {
+          control.disabled = true;
         }
 
         if (field.helper) {
@@ -477,6 +520,20 @@
           helper.className = 'form-text';
           helper.textContent = field.helper;
           wrapper.appendChild(helper);
+        }
+
+        if (field.palette) {
+          const chip = document.createElement('div');
+          chip.className = 'field-option-chip';
+          chip.dataset.role = 'option-chip';
+          const dot = document.createElement('span');
+          dot.className = 'color-dot';
+          const text = document.createElement('span');
+          text.dataset.role = 'option-chip-label';
+          text.textContent = 'Sin selección';
+          chip.appendChild(dot);
+          chip.appendChild(text);
+          wrapper.appendChild(chip);
         }
 
         return wrapper;
@@ -669,6 +726,11 @@
         });
 
         if (field.allowCustom) {
+          const removeOption = document.createElement('option');
+          removeOption.value = CUSTOM_OPTION_REMOVE;
+          removeOption.textContent = '🗑️ Eliminar valor…';
+          select.appendChild(removeOption);
+
           const customOption = document.createElement('option');
           customOption.value = CUSTOM_OPTION_VALUE;
           customOption.textContent = '➕ Agregar nuevo valor…';
@@ -711,6 +773,7 @@
         if (select.dataset.allowCustom === 'true') {
           select.dataset.previousValue = select.value || '';
         }
+        updateOptionChip(alias);
       }
 
       function applyDropdownOptions(optionMap) {
@@ -801,9 +864,15 @@
 
         let value = target.value;
         if (type === 'select') {
-          if (target.dataset.allowCustom === 'true' && value === CUSTOM_OPTION_VALUE) {
-            handleCustomSelectValue(target, alias);
-            return;
+          if (target.dataset.allowCustom === 'true') {
+            if (value === CUSTOM_OPTION_REMOVE) {
+              handleRemoveOption(target, alias);
+              return;
+            }
+            if (value === CUSTOM_OPTION_VALUE) {
+              handleCustomSelectValue(target, alias);
+              return;
+            }
           }
           value = value === undefined || value === null ? '' : String(value);
         }
@@ -815,6 +884,10 @@
           }
         }
         setFieldValue(alias, value);
+        maybeApplyContactAutoFill(alias, value);
+        if (['moneda', 'monto_ofertado', 'tipo_cambio'].includes(alias)) {
+          applyKpiFormulas();
+        }
       }
 
       function handleFieldFocus(event) {
@@ -890,6 +963,7 @@
         } else {
           state.values[alias] = value === undefined ? '' : value;
         }
+        updateOptionChip(alias);
         updateActionState();
       }
 
@@ -932,6 +1006,13 @@
         clearStatus();
         hideAlert();
         applyPermissions(context && context.permissions ? context.permissions : null);
+        if (context && context.contactDirectory) {
+          state.contactDirectory = context.contactDirectory;
+        } else {
+          state.contactDirectory = {};
+        }
+        state.options = {};
+        initializeStaticOptions();
         if (context && context.dropdownOptions) {
           applyDropdownOptions(context.dropdownOptions);
         }
@@ -1031,6 +1112,9 @@
       function renderAllFields() {
         FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
+            if (field.hidden) {
+              return;
+            }
             if (field.valueType === 'link') {
               renderLinkField(field.alias);
             } else if (field.valueType === 'select') {
@@ -1058,6 +1142,7 @@
         } else {
           input.value = value === undefined || value === null ? '' : String(value);
         }
+        updateOptionChip(alias);
       }
 
       function renderLinkField(alias) {
@@ -1073,23 +1158,257 @@
         toggleLinkButtons(alias, !!value.url);
       }
 
+      function updateOptionChip(alias) {
+        const field = FIELD_LOOKUP[alias];
+        if (!field || !field.palette) {
+          return;
+        }
+        const wrapper = elements.formCard.querySelector(
+          `[data-alias="${alias}"][data-palette="true"]`
+        );
+        if (!wrapper) {
+          return;
+        }
+        const chip = wrapper.querySelector('[data-role="option-chip"]');
+        if (!chip) {
+          return;
+        }
+        const label = chip.querySelector('[data-role="option-chip-label"]');
+        const dot = chip.querySelector('.color-dot');
+        const currentValue = state.values[alias] || '';
+        if (!currentValue) {
+          chip.style.backgroundColor = 'rgba(99, 102, 241, 0.08)';
+          chip.style.color = '#312e81';
+          if (dot) {
+            dot.style.backgroundColor = '#6366f1';
+          }
+          if (label) {
+            label.textContent = 'Sin selección';
+          }
+          return;
+        }
+        const palette = field.palette || {};
+        const normalized = currentValue.toString().trim().toLowerCase();
+        const color = palette[normalized] || '#4338ca';
+        chip.style.backgroundColor = color + '1a';
+        chip.style.color = color;
+        if (dot) {
+          dot.style.backgroundColor = color;
+        }
+        if (label) {
+          label.textContent = currentValue;
+        }
+      }
+
+      function applyDependentFieldValue(alias, value, options = {}) {
+        const field = FIELD_LOOKUP[alias];
+        if (!field) {
+          return;
+        }
+        let storedValue = value;
+        if (field.valueType === 'boolean') {
+          if (value === '' || value === null || value === undefined) {
+            storedValue = null;
+          } else if (value === true || value === false) {
+            storedValue = value;
+          } else {
+            storedValue = String(value).toLowerCase() === 'true';
+          }
+        } else if (field.valueType === 'link') {
+          storedValue = value && typeof value === 'object' ? { ...value } : { url: '', text: '' };
+        } else if (value === null || value === undefined) {
+          storedValue = '';
+        } else {
+          storedValue = String(value);
+        }
+
+        state.values[alias] = storedValue;
+
+        if (!field.hidden) {
+          if (field.valueType === 'link') {
+            renderLinkField(alias);
+          } else if (field.valueType === 'select') {
+            if (storedValue && storedValue !== '' && !getOptionsForField(alias).some((opt) => opt.value === storedValue)) {
+              addCustomOption(alias, storedValue);
+            }
+            renderSelectField(field);
+          } else {
+            renderStandardField(field);
+          }
+        }
+
+        if (!options.skipActionState) {
+          updateActionState();
+        }
+      }
+
+      function maybeApplyContactAutoFill(alias, value) {
+        const directory = state.contactDirectory || {};
+        if (!value) {
+          return;
+        }
+        const normalized = value.toString().trim().toLowerCase();
+        let entry = null;
+        if (alias === 'solicitante' && directory.solicitante) {
+          entry = directory.solicitante[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_solicitante', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_solicitante', entry.phone || '', { skipActionState: true });
+          }
+        } else if (alias === 'responsable_tecnico' && directory.responsable_tecnico) {
+          entry = directory.responsable_tecnico[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_responsable_tecnico', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_responsable_tecnico', entry.phone || '', { skipActionState: true });
+          }
+        } else if (alias === 'responsable_economico' && directory.responsable_economico) {
+          entry = directory.responsable_economico[normalized] || null;
+          if (entry) {
+            applyDependentFieldValue('correo_responsable_economico', entry.email || '', { skipActionState: true });
+            applyDependentFieldValue('telefono_responsable_economico', entry.phone || '', { skipActionState: true });
+          }
+        }
+        if (entry) {
+          updateActionState();
+        }
+      }
+
+      function applyKpiFormulas() {
+        const moneda = (state.values.moneda || '').toString().trim().toUpperCase();
+        const montoRaw = state.values.monto_ofertado;
+        const tipoCambioRaw = state.values.tipo_cambio;
+        const monto =
+          montoRaw === null || montoRaw === undefined || montoRaw === '' ? NaN : Number(montoRaw);
+        let tipoCambio =
+          tipoCambioRaw === null || tipoCambioRaw === undefined || tipoCambioRaw === ''
+            ? NaN
+            : Number(tipoCambioRaw);
+        let monedaNormalizada = '';
+        let montoUsd = '';
+        const formatTwoDecimals = (num) =>
+          Number.isFinite(num) ? (Math.round(num * 100) / 100).toFixed(2) : '';
+
+        if (!moneda) {
+          applyDependentFieldValue('moneda_normalizada_usd', '', { skipActionState: true });
+          applyDependentFieldValue('monto_ofertado_usd', '', { skipActionState: true });
+          updateActionState();
+          return;
+        }
+
+        const isUsd = ['USD', 'US$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES'].includes(moneda);
+        const isPen = ['PEN', 'SOL', 'SOLES', 'S/.', 'S/'].includes(moneda);
+
+        if (isUsd) {
+          monedaNormalizada = 'USD';
+          if (!Number.isFinite(tipoCambio) || tipoCambio === 0) {
+            tipoCambio = 1;
+            applyDependentFieldValue('tipo_cambio', '1', { skipActionState: true });
+          }
+          montoUsd = formatTwoDecimals(monto);
+        } else if (isPen) {
+          monedaNormalizada = 'USD';
+          if (Number.isFinite(monto) && Number.isFinite(tipoCambio) && tipoCambio !== 0) {
+            const calculado = monto * tipoCambio;
+            montoUsd = formatTwoDecimals(calculado);
+          } else {
+            montoUsd = '';
+          }
+        } else {
+          monedaNormalizada = moneda;
+          montoUsd = formatTwoDecimals(monto);
+        }
+
+        applyDependentFieldValue('moneda_normalizada_usd', monedaNormalizada, { skipActionState: true });
+        applyDependentFieldValue('monto_ofertado_usd', montoUsd, { skipActionState: true });
+        updateActionState();
+      }
+
+      function handleRemoveOption(select, alias) {
+        const field = FIELD_LOOKUP[alias];
+        const previous = select.dataset.previousValue || '';
+        const options = getOptionsForField(alias);
+        if (!options.length) {
+          select.value = previous;
+          return;
+        }
+        const availableList = options.map((option) => option.label).join('\n• ');
+        const promptMessage =
+          `¿Qué valor deseas eliminar de "${field.label}"?` +
+          '\n• ' +
+          availableList +
+          '\n\nSe borrará de la hoja actual.';
+        const response = prompt(promptMessage, previous || '');
+        if (response === null) {
+          select.value = previous;
+          return;
+        }
+        const trimmed = response.trim();
+        if (!trimmed) {
+          select.value = previous;
+          return;
+        }
+        const match = options.find((option) => option.value.toLowerCase() === trimmed.toLowerCase());
+        if (!match) {
+          showAlert('warning', `No se encontró el valor "${trimmed}" en la lista.`);
+          select.value = previous;
+          return;
+        }
+        const confirmed = confirm(
+          `Se eliminará "${match.label}" de todas las filas de la hoja. ¿Deseas continuar?`
+        );
+        if (!confirmed) {
+          select.value = previous;
+          return;
+        }
+        select.value = previous;
+        setLoading(true, 'Eliminando valor de la lista…');
+        google.script.run
+          .withSuccessHandler((result) => {
+            setLoading(false);
+            setStatus(
+              result && result.removed
+                ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
+                : `No se encontraron coincidencias para "${match.label}".`,
+              result && result.removed ? 'success' : 'warning'
+            );
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .removeDropdownValue({ alias, value: match.value });
+      }
+
       function updateSummaryCard(data) {
         const hasRow = !!state.rowNumber;
-        elements.summaryTitle.textContent = data.invitation_id
-          ? `ID ${data.invitation_id}`
+        const title = data.cotizacion
+          ? `Cotización ${data.cotizacion}`
+          : data.descripcion
+          ? data.descripcion
           : hasRow
-          ? 'Sin ID asignado'
+          ? `Fila ${state.rowNumber}`
           : 'Formulario disponible';
-        elements.summarySubtitle.textContent = data.cliente
+        elements.summaryTitle.textContent = title;
+
+        const subtitle = data.cliente
           ? data.cliente
+          : data.orden_de_compra
+          ? `Orden de compra: ${data.orden_de_compra}`
           : hasRow
           ? 'Cliente no especificado'
           : 'Selecciona una fila para cargar los datos.';
-        elements.summaryBadge.textContent = data.cotizacion
-          ? `Cotización ${data.cotizacion}`
+        elements.summarySubtitle.textContent = subtitle;
+
+        const badgeText = data.orden_de_compra
+          ? `OC ${data.orden_de_compra}`
+          : data.semana_iso
+          ? `Semana ${data.semana_iso}`
           : hasRow && state.rowNumber
           ? `Fila ${state.rowNumber}`
           : 'Sin fila seleccionada';
+        elements.summaryBadge.textContent = badgeText;
+
         elements.summaryDescription.textContent = data.descripcion
           ? data.descripcion
           : hasRow
@@ -1098,6 +1417,7 @@
 
         elements.summaryStatuses.innerHTML = '';
         const statuses = [
+          { label: 'Servicio', value: data.tipo_servicio, tone: 'palette' },
           { label: 'Cotización', value: data.estado_cotizacion, tone: 'primary' },
           { label: 'Propuesta', value: data.estado_propuesta, tone: 'success' },
           { label: 'Pipeline', value: data.estado_pipeline, tone: 'warning' },
@@ -1107,13 +1427,22 @@
             return;
           }
           const badge = document.createElement('span');
-          const toneClass =
-            status.tone === 'success'
-              ? 'badge-soft-success'
-              : status.tone === 'warning'
-              ? 'badge-soft-warning'
-              : 'badge-soft-primary';
-          badge.className = `status-badge ${toneClass}`;
+          let toneClass = 'badge-soft-primary';
+          if (status.tone === 'success') {
+            toneClass = 'badge-soft-success';
+          } else if (status.tone === 'warning') {
+            toneClass = 'badge-soft-warning';
+          }
+          if (status.tone === 'palette') {
+            const palette = FIELD_LOOKUP.tipo_servicio && FIELD_LOOKUP.tipo_servicio.palette;
+            const normalized = status.value.toString().trim().toLowerCase();
+            const color = palette ? palette[normalized] : null;
+            badge.className = 'status-badge';
+            badge.style.backgroundColor = color ? color + '1a' : 'rgba(99, 102, 241, 0.12)';
+            badge.style.color = color || '#4338ca';
+          } else {
+            badge.className = `status-badge ${toneClass}`;
+          }
           badge.textContent = `${status.label}: ${status.value}`;
           elements.summaryStatuses.appendChild(badge);
         });

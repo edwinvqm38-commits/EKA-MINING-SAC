@@ -3,6 +3,8 @@ const SUPABASE_URL = 'https://wnhqyccqxifhusltigmq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduaHF5Y2NxeGlmaHVzbHRpZ21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NjE0MTUsImV4cCI6MjA3ODAzNzQxNX0.bauaVdlUzsHNHeVDeftFrqbVX5Rya1gA6fiVYVc3Mos'; // MVP. Luego migraremos a Edge Function + x-api-key.
 const SUPABASE_TABLE = 'invitations';
 const INVITATIONS_HEADER_ROW = 1;
+const SUPABASE_SCHEMA_CACHE_KEY = 'SUPABASE_COLUMNS_CACHE';
+const SUPABASE_SCHEMA_TTL_SECONDS = 600;
 
 /***** COLUMNAS *****/
 const INVITATIONS_SHEET_NAME = typeof SHEET_NAME !== 'undefined' ? SHEET_NAME : 'Invitaciones'; // cambia si tu hoja tiene otro nombre
@@ -222,9 +224,84 @@ function buildInvitationPayload(row) {
   };
 }
 
+function getSupabaseColumnSet() {
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get(SUPABASE_SCHEMA_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length) {
+        return new Set(parsed.map(function (name) {
+          return name.toString().toLowerCase();
+        }));
+      }
+    }
+  } catch (err) {
+    // Ignorar problemas de caché
+  }
+
+  try {
+    const url =
+      SUPABASE_URL +
+      '/rest/v1/information_schema.columns?select=column_name&table_name=eq.' +
+      encodeURIComponent(SUPABASE_TABLE);
+    const res = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      muteHttpExceptions: true,
+    });
+    const code = res.getResponseCode();
+    if (code >= 200 && code < 300) {
+      const body = res.getContentText();
+      const json = JSON.parse(body || '[]');
+      if (Array.isArray(json)) {
+        const columns = json
+          .map(function (item) {
+            return item && item.column_name ? String(item.column_name).toLowerCase() : null;
+          })
+          .filter(function (name) {
+            return !!name;
+          });
+        if (columns.length) {
+          CacheService.getScriptCache().put(
+            SUPABASE_SCHEMA_CACHE_KEY,
+            JSON.stringify(columns),
+            SUPABASE_SCHEMA_TTL_SECONDS
+          );
+          return new Set(columns);
+        }
+      }
+    }
+  } catch (err) {
+    // Si falla la introspección, se usa payload completo
+  }
+  return null;
+}
+
+function filterPayloadForSupabase(payload) {
+  const columnSet = getSupabaseColumnSet();
+  if (!columnSet || columnSet.size === 0) {
+    return payload;
+  }
+  const filtered = {};
+  Object.keys(payload || {}).forEach(function (key) {
+    if (columnSet.has(key.toLowerCase())) {
+      filtered[key] = payload[key];
+    }
+  });
+  if (payload && payload.invitation_id && !filtered.invitation_id) {
+    filtered.invitation_id = payload.invitation_id;
+  }
+  return filtered;
+}
+
 /***** POST/UPSERT a Supabase (REST) *****/
 function supabaseUpsert(rowsPayload) {
   const url = SUPABASE_URL + '/rest/v1/' + SUPABASE_TABLE + '?on_conflict=invitation_id';
+  const filteredRows = rowsPayload.map(filterPayloadForSupabase);
   const res = UrlFetchApp.fetch(url, {
     method: 'post',
     headers: {
@@ -233,7 +310,7 @@ function supabaseUpsert(rowsPayload) {
       Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
       Prefer: 'resolution=merge-duplicates',
     },
-    payload: JSON.stringify(rowsPayload),
+    payload: JSON.stringify(filteredRows),
     muteHttpExceptions: true,
   });
   const code = res.getResponseCode();
@@ -254,7 +331,10 @@ function syncSelectedRowsToSupabase() {
   const payload = [];
   for (let r = start; r <= end; r++) {
     if (r <= INVITATIONS_HEADER_ROW) continue;
-    const idInv = _val(r, 'ID Invitación');
+    let idInv = _val(r, 'ID Invitación');
+    if (!idInv && typeof ensureInvitationIdForRow === 'function') {
+      idInv = ensureInvitationIdForRow(r);
+    }
     if (!idInv) continue;
     payload.push(buildInvitationPayload(r));
   }
@@ -271,7 +351,10 @@ function syncAllToSupabase() {
   const lastRow = sh.getLastRow();
   const payload = [];
   for (let r = INVITATIONS_HEADER_ROW + 1; r <= lastRow; r++) {
-    const idInv = _val(r, 'ID Invitación');
+    let idInv = _val(r, 'ID Invitación');
+    if (!idInv && typeof ensureInvitationIdForRow === 'function') {
+      idInv = ensureInvitationIdForRow(r);
+    }
     if (!idInv) continue;
     payload.push(buildInvitationPayload(r));
   }

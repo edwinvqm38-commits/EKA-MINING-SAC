@@ -4,6 +4,7 @@ const COLUMN_DICTIONARY_HEADERS = [
   'Encabezado en hoja',
   'Alias (código)',
   'Descripción',
+  'Ejemplo (referencial)',
   'Tipo de dato',
   'Notas (editable)',
 ];
@@ -15,7 +16,8 @@ const COLUMN_DICTIONARY_DESCRIPTIONS = {
   tipo_servicio: 'Clasificación del servicio solicitado (cotización, licitación, parada, etc.).',
   estado_cotizacion: 'Etapa interna de preparación de la cotización.',
   estado_propuesta: 'Situación comercial de la propuesta enviada al cliente.',
-  estado_pipeline: 'Estado dentro del pipeline comercial de EKA para gestión de oportunidades.',
+  estado_pipeline:
+    'Estado dentro del pipeline comercial de EKA (ej. Prospecto, Propuesta enviada, Negociación, Cerrado). Úsalo para dar trazabilidad comercial.',
   fecha_registro: 'Fecha en la que se registró la invitación en la hoja.',
   cliente: 'Cliente o razón social que emite la invitación.',
   zona_trabajo: 'Zona, unidad o proyecto donde se realizará el servicio.',
@@ -36,6 +38,8 @@ const COLUMN_DICTIONARY_DESCRIPTIONS = {
   fecha_presentacion: 'Fecha comprometida para presentar la propuesta.',
   monto_ofertado: 'Monto económico ofertado en la moneda original.',
   moneda: 'Moneda original asociada al monto ofertado.',
+  moneda_normalizada_usd:
+    'Moneda destino usada para normalizar el monto (por defecto USD) y facilitar la comparación entre procesos.',
   orden_de_compra: 'Número o referencia de la orden de compra recibida.',
   fecha_orden_compra: 'Fecha de emisión o recepción de la orden de compra.',
   link_carpeta_drive: 'Enlace a la carpeta de Google Drive con el expediente de la invitación.',
@@ -55,6 +59,49 @@ const COLUMN_DICTIONARY_DESCRIPTIONS = {
   tipo_cambio: 'Tipo de cambio aplicado para obtener la equivalencia en USD.',
   monto_ofertado_usd: 'Monto ofertado convertido a dólares estadounidenses.',
   notas_kpi: 'Notas, hallazgos o acuerdos relevantes para seguimiento de KPIs.',
+};
+
+const COLUMN_DICTIONARY_EXAMPLES = {
+  cotizacion: 'COT-245-2024',
+  descripcion: 'Servicio de mantenimiento integral de faja transportadora',
+  tipo_servicio: 'Cotización Formal',
+  estado_cotizacion: 'Elab. Prop. Téc.',
+  estado_propuesta: 'Enviada',
+  estado_pipeline: 'Negociación',
+  fecha_registro: '2024-09-12',
+  cliente: 'Minera Andina S.A.',
+  zona_trabajo: 'Planta concentradora - Guardia A',
+  solicitante: 'María López',
+  correo_solicitante: 'maria.lopez@minera.com',
+  telefono_solicitante: '+51 999 123 456',
+  responsable_tecnico: 'Juan Torres',
+  correo_responsable_tecnico: 'juan.torres@eka.com',
+  telefono_responsable_tecnico: '+51 998 765 432',
+  responsable_economico: 'Carla Gómez',
+  correo_responsable_economico: 'carla.gomez@eka.com',
+  telefono_responsable_economico: '+51 997 555 333',
+  fecha_invitacion: '2024-09-10',
+  fecha_confirmacion: '2024-09-13',
+  fecha_visita_tecnica: '2024-09-18',
+  fecha_consultas: '2024-09-20',
+  fecha_abs_consultas: '2024-09-23',
+  fecha_presentacion: '2024-09-27',
+  monto_ofertado: '150000',
+  moneda: 'PEN',
+  tipo_cambio: '0.27',
+  monto_ofertado_usd: '40500',
+  semana_iso: '2024-W38',
+  mes_anio: '2024-09',
+  notas_kpi: 'Se requiere seguimiento con compras el 25/09.',
+  link_carpeta_drive: 'https://drive.google.com/…',
+  link_archivo_enviado: 'https://drive.google.com/…',
+  dias_a_vencimiento: '5',
+  enviado_a_tiempo: 'Sí',
+  tiempo_respuesta_dias_hab: '7',
+  requiere_visita: 'Sí',
+  visita_ejecutada: 'No',
+  moneda_normalizada_usd: 'USD',
+  monto_ofertado_usd: '40500',
 };
 
 function ensureColumnDictionarySheet() {
@@ -107,11 +154,13 @@ function buildColumnDictionaryRows() {
     const sectionTitle = section.title || section.id;
     section.fields.forEach(function (field) {
       const description = COLUMN_DICTIONARY_DESCRIPTIONS[field.alias] || '';
+      const example = COLUMN_DICTIONARY_EXAMPLES[field.alias] || '';
       rows.push([
         sectionTitle,
         field.header,
         field.alias,
         description,
+        example,
         describeFieldValueType(field.valueType),
         '',
       ]);
