@@ -418,7 +418,25 @@
       crossorigin="anonymous"
     ></script>
     <script>
-      const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
+      const FIELD_SECTIONS = (() => {
+        try {
+          const data = <?!= fieldSectionsJson ?>;
+          if (!Array.isArray(data)) {
+            throw new Error('FIELD_SECTIONS no es array');
+          }
+          return data;
+        } catch (error) {
+          console.error('No se pudieron cargar las secciones del formulario.', error);
+          return [
+            {
+              id: 'general',
+              title: 'General',
+              description: 'Campos básicos de la invitación.',
+              fields: [],
+            },
+          ];
+        }
+      })();
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
       const PERMISSIONS_SHEET_NAME = <?!= JSON.stringify(permissionsSheetName) ?>;
@@ -508,6 +526,14 @@
       const tabInstances = {};
 
       document.addEventListener('DOMContentLoaded', () => {
+        try {
+          if (!Array.isArray(FIELD_SECTIONS)) {
+            throw new Error('FIELD_SECTIONS no es array');
+          }
+        } catch (error) {
+          console.error('FIELD_SECTIONS inválido durante la carga del panel.', error);
+        }
+
         document.title = 'Gestión de Invitaciones';
         buildTabs();
         attachAdminTab();
@@ -581,6 +607,59 @@
           pane.appendChild(row);
           elements.tabContent.appendChild(pane);
         });
+      }
+
+      function attachAdminTab() {
+        if (elements.adminTabItem || !elements.tabs || !elements.tabContent) {
+          return;
+        }
+        const template = elements.adminTabTemplate;
+        if (!template) {
+          return;
+        }
+        const navItem = document.createElement('li');
+        navItem.className = 'nav-item';
+        const button = document.createElement('button');
+        button.className = 'nav-link';
+        button.id = 'tab-admin';
+        button.type = 'button';
+        button.setAttribute('data-bs-toggle', 'pill');
+        button.setAttribute('data-bs-target', '#panel-admin');
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-controls', 'panel-admin');
+        button.setAttribute('aria-selected', 'false');
+        button.textContent = 'Administración de accesos';
+        navItem.appendChild(button);
+        elements.tabs.appendChild(navItem);
+        elements.adminTabItem = navItem;
+        elements.adminTabButton = button;
+
+        if (!document.getElementById('panel-admin')) {
+          const fragment = template.content ? template.content.cloneNode(true) : null;
+          if (fragment) {
+            elements.tabContent.appendChild(fragment);
+          }
+        }
+        elements.adminTabPane = document.getElementById('panel-admin');
+      }
+
+      function refreshAdminElementReferences() {
+        elements.permissionsCard = document.getElementById('permissionsCard');
+        elements.permissionStatus = document.getElementById('permissionStatus');
+        elements.permissionUserForm = document.getElementById('permissionUserForm');
+        elements.permissionUserEmail = document.getElementById('permissionUserEmail');
+        elements.permissionUserPhone = document.getElementById('permissionUserPhone');
+        elements.permissionUserRole = document.getElementById('permissionUserRole');
+        elements.permissionUserStatus = document.getElementById('permissionUserStatus');
+        elements.permissionUserNotes = document.getElementById('permissionUserNotes');
+        elements.permissionUserSubmitButton = document.getElementById('permissionUserSubmitButton');
+        elements.permissionUserResetButton = document.getElementById('permissionUserResetButton');
+        elements.permissionUserTableBody = document.getElementById('permissionUserTableBody');
+        elements.openPermissionsSheetButton = document.getElementById('openPermissionsSheetButton');
+        elements.columnPermissionUser = document.getElementById('columnPermissionUser');
+        elements.columnPermissionList = document.getElementById('columnPermissionList');
+        elements.columnPermissionSaveButton = document.getElementById('columnPermissionSaveButton');
+        elements.adminTabPane = document.getElementById('panel-admin');
       }
 
       function ensureGroupContainer(sectionRow, cache, field) {
@@ -1272,29 +1351,34 @@
       function processContext(context) {
         clearStatus();
         hideAlert();
+
         applyPermissions(context && context.permissions ? context.permissions : null);
-        if (context && context.contactDirectory) {
-          state.contactDirectory = context.contactDirectory;
-        } else {
-          state.contactDirectory = {};
-        }
+
+        state.contactDirectory = (context && context.contactDirectory) || {};
         state.options = {};
         initializeStaticOptions();
         if (context && context.dropdownOptions) {
           applyDropdownOptions(context.dropdownOptions);
         }
+
+        showFormCards(true);
+
         const active = context && context.activeInvitation ? context.activeInvitation : null;
         if (!active) {
-          showAlert('danger', 'No se pudo obtener la información de la hoja.');
           resetFormData();
-          showFormCards(true);
+          showAlert('danger', 'No se pudo obtener la información de la hoja.');
+          setStatus('Formulario listo. Las acciones se habilitarán cuando selecciones una fila.', 'info');
+          updateActionState();
           return;
         }
 
         if (!active.rowNumber) {
           resetFormData();
-          showFormCards(true);
-          if (active.sheetName && active.sheetName !== active.expectedSheetName) {
+          if (
+            active.sheetName &&
+            active.expectedSheetName &&
+            active.sheetName !== active.expectedSheetName
+          ) {
             showAlert(
               'warning',
               `Abre la hoja "${active.expectedSheetName}" para gestionar las invitaciones. Actualmente estás en "${active.sheetName}".`
@@ -1302,11 +1386,11 @@
           } else {
             showAlert('info', 'Selecciona una fila de datos (por debajo del encabezado) para trabajar desde el panel.');
           }
-          setStatus('Formulario en modo espera hasta que selecciones una fila.', 'info');
+          setStatus('Formulario listo. Las acciones se habilitarán cuando selecciones una fila.', 'info');
+          updateActionState();
           return;
         }
 
-        showFormCards(true);
         hideAlert();
         applyData(active.data || {}, active.rowNumber);
       }
@@ -1635,36 +1719,83 @@
         });
       }
 
-      function togglePermissionsCard(visible) {
-        const show = visible === true;
+      function setAdminControlsEnabled(enabled) {
+        const disable = !enabled || state.permissionAdmin.loading;
+        if (elements.permissionUserForm) {
+          Array.from(elements.permissionUserForm.elements).forEach((input) => {
+            if (!input) {
+              return;
+            }
+            input.disabled = disable;
+          });
+        }
+        if (elements.permissionUserSubmitButton) {
+          elements.permissionUserSubmitButton.disabled = disable;
+        }
+        if (elements.permissionUserResetButton) {
+          elements.permissionUserResetButton.disabled = disable;
+        }
+        if (elements.openPermissionsSheetButton) {
+          elements.openPermissionsSheetButton.disabled = disable;
+        }
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.disabled = disable;
+        }
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled =
+            disable || !state.permissionAdmin.selectedEmail;
+        }
+        if (elements.columnPermissionList) {
+          const checkboxes = elements.columnPermissionList.querySelectorAll('input[type="checkbox"]');
+          checkboxes.forEach((checkbox) => {
+            checkbox.disabled = disable;
+          });
+        }
+      }
+
+      function togglePermissionsCard(canManage) {
         if (elements.adminTabItem) {
-          elements.adminTabItem.classList.toggle('d-none', !show);
+          elements.adminTabItem.classList.remove('d-none');
         }
         if (elements.adminTabPane) {
-          elements.adminTabPane.classList.toggle('d-none', !show);
+          elements.adminTabPane.classList.remove('d-none');
         }
         if (elements.permissionsCard) {
-          elements.permissionsCard.classList.toggle('d-none', !show);
+          elements.permissionsCard.classList.remove('d-none');
         }
         if (elements.adminTabButton) {
-          elements.adminTabButton.classList.toggle('d-none', !show);
-          elements.adminTabButton.disabled = !show;
-          elements.adminTabButton.setAttribute('aria-disabled', String(!show));
+          elements.adminTabButton.classList.remove('d-none');
+          elements.adminTabButton.disabled = false;
+          elements.adminTabButton.setAttribute('aria-disabled', 'false');
         }
-        if (!show) {
-          setPermissionStatus('Tu usuario no tiene permisos de administración.', 'warning');
-          if (
-            elements.adminTabButton &&
-            elements.adminTabButton.classList.contains('active') &&
-            elements.tabs
-          ) {
-            const fallback = elements.tabs.querySelector('.nav-link:not(.d-none)');
-            if (fallback && fallback !== elements.adminTabButton) {
-              bootstrap.Tab.getOrCreateInstance(fallback).show();
-            }
-          }
-        } else {
+
+        if (canManage === true) {
           setPermissionStatus('', '');
+          setAdminControlsEnabled(true);
+          return;
+        }
+
+        state.permissionAdmin.loading = false;
+        state.permissionAdmin.loaded = false;
+        state.permissionAdmin.users = [];
+        state.permissionAdmin.columns = [];
+        state.permissionAdmin.matrix = {};
+        state.permissionAdmin.selectedEmail = '';
+        state.permissionAdmin.editingEmail = '';
+        setPermissionStatus('Tu usuario no tiene permisos de administración.', 'warning');
+        resetPermissionUserForm();
+        setAdminControlsEnabled(false);
+        if (elements.permissionUserTableBody) {
+          elements.permissionUserTableBody.innerHTML = '';
+        }
+        if (elements.columnPermissionList) {
+          elements.columnPermissionList.innerHTML = '';
+        }
+        if (elements.columnPermissionUser) {
+          elements.columnPermissionUser.value = '';
+        }
+        if (elements.columnPermissionSaveButton) {
+          elements.columnPermissionSaveButton.disabled = true;
         }
       }
 
@@ -2136,23 +2267,6 @@
             showError(error);
           })
           .openPermissionsSheet();
-      }
-
-      function handleOpenColumnPermissionsSheet() {
-        if (state.permissionAdmin.loading) {
-          return;
-        }
-        setPermissionAdminLoading(true, `Abriendo hoja "${COLUMN_PERMISSION_SHEET_NAME}"…`);
-        google.script.run
-          .withSuccessHandler(() => {
-            setPermissionAdminLoading(false);
-            setPermissionStatus(`Se abrió "${COLUMN_PERMISSION_SHEET_NAME}".`, 'success');
-          })
-          .withFailureHandler((error) => {
-            setPermissionAdminLoading(false);
-            showError(error);
-          })
-          .openColumnPermissionsSheet();
       }
 
       function handleColumnPermissionUserChange(event) {
