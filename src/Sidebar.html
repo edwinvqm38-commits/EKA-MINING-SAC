@@ -154,6 +154,27 @@
         }
       }
 
+      .field-option-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.08);
+        color: #312e81;
+        margin-top: 0.4rem;
+      }
+
+      .field-option-chip .color-dot {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
       .form-control[readonly],
       .form-control[disabled],
       .form-select[disabled] {
@@ -368,35 +389,28 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="optionManagerTitle">Gestionar valores</h5>
+            <h5 class="modal-title" id="optionManagerTitle">Eliminar valor</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-3 d-none" id="optionManagerSelectGroup">
-              <label class="form-label" for="optionManagerSelect">Selecciona el valor</label>
+            <div class="mb-3">
+              <label class="form-label" for="optionManagerSelect">Selecciona el valor a eliminar</label>
               <select id="optionManagerSelect" class="form-select"></select>
             </div>
-            <div class="mb-3 d-none" id="optionManagerInputGroup">
-              <label class="form-label" for="optionManagerInput">Nuevo valor</label>
-              <input id="optionManagerInput" type="text" class="form-control" />
+            <div class="alert alert-warning small mb-0" role="alert">
+              Se eliminará el valor seleccionado de todas las filas de la hoja
+              <span class="fw-semibold"><?!= sheetName ?></span>.
             </div>
-            <div class="alert small mb-0 d-none" id="optionManagerNotice" role="alert"></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
               Cancelar
             </button>
-            <button type="button" class="btn btn-primary" id="optionManagerConfirm">Guardar</button>
+            <button type="button" class="btn btn-danger" id="optionManagerConfirm">Eliminar valor</button>
           </div>
         </div>
       </div>
     </div>
-
-    <pre
-      id="debugContext"
-      class="mt-3 p-2 small bg-light border rounded"
-      style="white-space: pre-wrap; word-break: break-word"
-    ></pre>
 
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -404,24 +418,32 @@
       crossorigin="anonymous"
     ></script>
     <script>
-      const FIELD_SECTIONS = <?!= fieldSectionsJson ?>;
+      const FIELD_SECTIONS = (() => {
+        try {
+          const data = <?!= fieldSectionsJson ?>;
+          if (!Array.isArray(data)) {
+            throw new Error('FIELD_SECTIONS no es array');
+          }
+          return data;
+        } catch (error) {
+          console.error('No se pudieron cargar las secciones del formulario.', error);
+          return [
+            {
+              id: 'general',
+              title: 'General',
+              description: 'Campos básicos de la invitación.',
+              fields: [],
+            },
+          ];
+        }
+      })();
       const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
       const DICTIONARY_SHEET_NAME = <?!= JSON.stringify(dictionarySheetName) ?>;
       const PERMISSIONS_SHEET_NAME = <?!= JSON.stringify(permissionsSheetName) ?>;
       const COLUMN_PERMISSION_SHEET_NAME = <?!= JSON.stringify(columnPermissionSheetName) ?>;
       const CUSTOM_OPTION_VALUE = '__custom_option__';
       const CUSTOM_OPTION_REMOVE = '__remove_option__';
-      let FIELD_SECTIONS_RESOLVED = Array.isArray(FIELD_SECTIONS)
-        ? FIELD_SECTIONS
-        : [];
-      let FIELD_LOOKUP = {};
-      const NUMBER_FIELD_FORMATS = {
-        monto_ofertado: { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-        monto_ofertado_usd: { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-        tipo_cambio: { minimumFractionDigits: 2, maximumFractionDigits: 4 },
-        dias_a_vencimiento: { minimumFractionDigits: 0, maximumFractionDigits: 0 },
-        tiempo_respuesta_dias_hab: { minimumFractionDigits: 0, maximumFractionDigits: 2 },
-      };
+      const FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS);
 
       const state = {
         rowNumber: null,
@@ -447,13 +469,10 @@
           loading: false,
           editingEmail: '',
         },
-        optionModalState: {
-          mode: '',
+        optionRemoval: {
           alias: '',
-          fieldLabel: '',
           options: [],
           previousValue: '',
-          selectElement: null,
         },
         optionModalInstance: null,
       };
@@ -500,109 +519,21 @@
         adminTabPane: null,
         optionModal: document.getElementById('optionManagerModal'),
         optionModalTitle: document.getElementById('optionManagerTitle'),
-        optionModalSelectGroup: document.getElementById('optionManagerSelectGroup'),
         optionModalSelect: document.getElementById('optionManagerSelect'),
-        optionModalInputGroup: document.getElementById('optionManagerInputGroup'),
-        optionModalInput: document.getElementById('optionManagerInput'),
-        optionModalNotice: document.getElementById('optionManagerNotice'),
         optionModalConfirm: document.getElementById('optionManagerConfirm'),
-        debugPre: document.getElementById('debugContext'),
       };
 
       const tabInstances = {};
 
-      function getNumericFormatOptions(alias) {
-        if (alias && Object.prototype.hasOwnProperty.call(NUMBER_FIELD_FORMATS, alias)) {
-          return NUMBER_FIELD_FORMATS[alias];
-        }
-        return { minimumFractionDigits: 0, maximumFractionDigits: 2 };
-      }
-
-      function normalizeNumberInput(raw) {
-        if (raw === null || raw === undefined) {
-          return '';
-        }
-        if (typeof raw === 'number') {
-          return Number.isFinite(raw) ? raw.toString() : '';
-        }
-        let value = String(raw).trim();
-        if (!value) {
-          return '';
-        }
-        value = value.replace(/\s+/g, '');
-        let negative = false;
-        if (value.startsWith('-')) {
-          negative = true;
-          value = value.slice(1);
-        }
-        value = value.replace(/,/g, '');
-        const parts = value.split('.');
-        let integerPart = parts.shift() || '';
-        integerPart = integerPart.replace(/[^0-9]/g, '');
-        let decimalPart = parts.join('');
-        decimalPart = decimalPart.replace(/[^0-9]/g, '');
-        let normalized = integerPart;
-        if (decimalPart) {
-          normalized = (normalized || '0') + '.' + decimalPart;
-        }
-        if (!normalized) {
-          return '';
-        }
-        if (negative && normalized === '0') {
-          return '0';
-        }
-        return negative ? '-' + normalized : normalized;
-      }
-
-      function formatNumberForDisplay(value, alias) {
-        if (value === null || value === undefined || value === '') {
-          return '';
-        }
-        const numeric = typeof value === 'number' ? value : Number(normalizeNumberInput(value));
-        if (!Number.isFinite(numeric)) {
-          return typeof value === 'string' ? value : '';
-        }
-        try {
-          const options = getNumericFormatOptions(alias);
-          return new Intl.NumberFormat('en-US', options).format(numeric);
-        } catch (error) {
-          return numeric.toString();
-        }
-      }
-
-      function updateDebug(payload) {
-        if (!elements.debugPre) {
-          return;
-        }
-        if (payload === undefined) {
-          elements.debugPre.textContent = '';
-          return;
-        }
-        try {
-          elements.debugPre.textContent = JSON.stringify(payload, null, 2);
-        } catch (error) {
-          elements.debugPre.textContent = String(payload);
-        }
-      }
-
       document.addEventListener('DOMContentLoaded', () => {
         try {
-          if (!Array.isArray(FIELD_SECTIONS) || FIELD_SECTIONS.length === 0) {
-            throw new Error('FIELD_SECTIONS no es un arreglo válido');
+          if (!Array.isArray(FIELD_SECTIONS)) {
+            throw new Error('FIELD_SECTIONS no es array');
           }
-          FIELD_SECTIONS_RESOLVED = FIELD_SECTIONS;
         } catch (error) {
           console.error('FIELD_SECTIONS inválido durante la carga del panel.', error);
-          FIELD_SECTIONS_RESOLVED = [
-            {
-              id: 'general',
-              title: 'General',
-              description: 'Campos básicos de la invitación.',
-              fields: [],
-            },
-          ];
         }
-        FIELD_LOOKUP = buildFieldLookup(FIELD_SECTIONS_RESOLVED);
+
         document.title = 'Gestión de Invitaciones';
         buildTabs();
         attachAdminTab();
@@ -619,7 +550,7 @@
       function buildTabs() {
         elements.tabs.innerHTML = '';
         elements.tabContent.innerHTML = '';
-        FIELD_SECTIONS_RESOLVED.forEach((section, index) => {
+        FIELD_SECTIONS.forEach((section, index) => {
           const isActive = index === 0;
           const tabId = `tab-${section.id}`;
           const panelId = `panel-${section.id}`;
@@ -787,6 +718,9 @@
         wrapper.className = columnClass;
         wrapper.dataset.alias = field.alias;
         wrapper.dataset.type = field.valueType;
+        if (field.palette) {
+          wrapper.dataset.palette = 'true';
+        }
 
         const label = document.createElement('label');
         label.className = 'form-label';
@@ -820,9 +754,9 @@
             break;
           case 'number':
             control = document.createElement('input');
-            control.type = 'text';
-            control.inputMode = 'decimal';
-            control.className = 'form-control text-end';
+            control.type = 'number';
+            control.className = 'form-control';
+            control.step = 'any';
             break;
           case 'select':
             control = document.createElement('select');
@@ -875,6 +809,20 @@
           helper.className = 'form-text';
           helper.textContent = field.helper;
           wrapper.appendChild(helper);
+        }
+
+        if (field.palette) {
+          const chip = document.createElement('div');
+          chip.className = 'field-option-chip';
+          chip.dataset.role = 'option-chip';
+          const dot = document.createElement('span');
+          dot.className = 'color-dot';
+          const text = document.createElement('span');
+          text.dataset.role = 'option-chip-label';
+          text.textContent = 'Sin selección';
+          chip.appendChild(dot);
+          chip.appendChild(text);
+          wrapper.appendChild(chip);
         }
 
         return wrapper;
@@ -1259,17 +1207,6 @@
           }
           value = value === undefined || value === null ? '' : String(value);
         }
-        if (type === 'number') {
-          const normalized = normalizeNumberInput(value);
-          state.values[alias] = normalized;
-          target.value = formatNumberForDisplay(normalized, alias);
-          updateOptionChip(alias);
-          updateActionState();
-          if (['monto_ofertado', 'tipo_cambio'].includes(alias)) {
-            applyKpiFormulas();
-          }
-          return;
-        }
         if (type === 'boolean') {
           if (value === '') {
             value = null;
@@ -1296,9 +1233,25 @@
 
       function handleCustomSelectValue(select, alias) {
         const field = FIELD_LOOKUP[alias];
-        const previous = select.dataset.previousValue || '';
-        select.value = previous;
-        openOptionAddModal(select, alias, field, previous);
+        const label = field && field.label ? field.label : alias;
+        const response = prompt(`Nuevo valor para "${label}"`);
+        if (response === null) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        const trimmed = response.trim();
+        if (!trimmed) {
+          const previous = select.dataset.previousValue || '';
+          select.value = previous;
+          return;
+        }
+        addCustomOption(alias, trimmed);
+        if (field) {
+          renderSelectField(field);
+        }
+        select.value = trimmed;
+        setFieldValue(alias, trimmed);
       }
 
       function handleLinkButtons(event) {
@@ -1336,10 +1289,7 @@
       }
 
       function setFieldValue(alias, value) {
-        const field = FIELD_LOOKUP[alias];
-        if (field && field.valueType === 'number') {
-          state.values[alias] = normalizeNumberInput(value);
-        } else if (typeof value === 'string') {
+        if (typeof value === 'string') {
           state.values[alias] = value;
         } else {
           state.values[alias] = value === undefined ? '' : value;
@@ -1376,7 +1326,6 @@
         state.permissionAdmin.columns = [];
         state.permissionAdmin.matrix = {};
         state.permissionAdmin.selectedEmail = '';
-        updateDebug({ status: 'loading' });
         if (elements.columnPermissionList) {
           elements.columnPermissionList.innerHTML = '';
         }
@@ -1390,17 +1339,10 @@
         google.script.run
           .withSuccessHandler((context) => {
             setLoading(false);
-            updateDebug(context);
             processContext(context);
           })
           .withFailureHandler((error) => {
             setLoading(false);
-            updateDebug({
-              error:
-                (error && error.message)
-                  ? String(error.message)
-                  : String(error || 'Error desconocido'),
-            });
             showError(error);
           })
           .getSidebarContext();
@@ -1422,10 +1364,17 @@
         showFormCards(true);
 
         const active = context && context.activeInvitation ? context.activeInvitation : null;
-        if (!active || !active.rowNumber) {
+        if (!active) {
+          resetFormData();
+          showAlert('danger', 'No se pudo obtener la información de la hoja.');
+          setStatus('Formulario listo. Las acciones se habilitarán cuando selecciones una fila.', 'info');
+          updateActionState();
+          return;
+        }
+
+        if (!active.rowNumber) {
           resetFormData();
           if (
-            active &&
             active.sheetName &&
             active.expectedSheetName &&
             active.sheetName !== active.expectedSheetName
@@ -1434,8 +1383,6 @@
               'warning',
               `Abre la hoja "${active.expectedSheetName}" para gestionar las invitaciones. Actualmente estás en "${active.sheetName}".`
             );
-          } else if (active && active.error) {
-            showAlert('warning', active.error);
           } else {
             showAlert('info', 'Selecciona una fila de datos (por debajo del encabezado) para trabajar desde el panel.');
           }
@@ -1453,7 +1400,7 @@
         state.baseline = {};
         state.values = {};
 
-        FIELD_SECTIONS_RESOLVED.forEach((section) => {
+        FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
             const alias = field.alias;
             const incoming = Object.prototype.hasOwnProperty.call(data, alias) ? data[alias] : '';
@@ -1491,7 +1438,7 @@
         state.baseline = {};
         state.values = {};
 
-        FIELD_SECTIONS_RESOLVED.forEach((section) => {
+        FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
             const alias = field.alias;
             if (field.valueType === 'boolean') {
@@ -1514,7 +1461,7 @@
       }
 
       function renderAllFields() {
-        FIELD_SECTIONS_RESOLVED.forEach((section) => {
+        FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
             if (field.hidden) {
               return;
@@ -1543,8 +1490,6 @@
         const value = state.values[alias];
         if (field.valueType === 'boolean') {
           input.value = value === null ? '' : value ? 'true' : 'false';
-        } else if (field.valueType === 'number') {
-          input.value = formatNumberForDisplay(value, alias);
         } else {
           input.value = value === undefined || value === null ? '' : String(value);
         }
@@ -1580,8 +1525,6 @@
           } else {
             storedValue = String(value).toLowerCase() === 'true';
           }
-        } else if (field.valueType === 'number') {
-          storedValue = normalizeNumberInput(value);
         } else if (field.valueType === 'link') {
           storedValue = value && typeof value === 'object' ? { ...value } : { url: '', text: '' };
         } else if (value === null || value === undefined) {
@@ -1704,8 +1647,7 @@
           alias,
           field,
           options.map((option) => ({ value: option.value, label: option.label })),
-          previous,
-          select
+          previous
         );
       }
 
@@ -1747,26 +1689,12 @@
         elements.summaryStatuses.innerHTML = '';
         const statuses = [
           { label: 'Servicio', value: data.tipo_servicio, tone: 'palette' },
-          { label: 'Estado cotización', value: data.estado_cotizacion, tone: 'primary' },
-          { label: 'Estado propuesta', value: data.estado_propuesta, tone: 'success' },
+          { label: 'Cotización', value: data.estado_cotizacion, tone: 'primary' },
+          { label: 'Propuesta', value: data.estado_propuesta, tone: 'success' },
           { label: 'Pipeline', value: data.estado_pipeline, tone: 'warning' },
-          { label: 'Cliente', value: data.cliente, tone: 'info' },
-          { label: 'Zona', value: data.zona_trabajo, tone: 'primary' },
-          { label: 'Moneda', value: data.moneda, tone: 'info' },
-          {
-            label: 'Monto (USD)',
-            value: data.monto_ofertado_usd,
-            tone: 'success',
-            type: 'number',
-            alias: 'monto_ofertado_usd',
-          },
         ];
         statuses.forEach((status) => {
-          let displayValue = status.value;
-          if (status.type === 'number') {
-            displayValue = formatNumberForDisplay(status.value, status.alias);
-          }
-          if (!displayValue) {
+          if (!status.value) {
             return;
           }
           const badge = document.createElement('span');
@@ -1775,8 +1703,6 @@
             toneClass = 'badge-soft-success';
           } else if (status.tone === 'warning') {
             toneClass = 'badge-soft-warning';
-          } else if (status.tone === 'info') {
-            toneClass = 'badge-soft-secondary';
           }
           if (status.tone === 'palette') {
             const palette = FIELD_LOOKUP.tipo_servicio && FIELD_LOOKUP.tipo_servicio.palette;
@@ -1788,7 +1714,7 @@
           } else {
             badge.className = `status-badge ${toneClass}`;
           }
-          badge.textContent = `${status.label}: ${displayValue}`;
+          badge.textContent = `${status.label}: ${status.value}`;
           elements.summaryStatuses.appendChild(badge);
         });
       }
@@ -2209,7 +2135,7 @@
       }
 
       function getSectionLabel(sectionId) {
-        const section = FIELD_SECTIONS_RESOLVED.find((candidate) => candidate.id === sectionId);
+        const section = FIELD_SECTIONS.find((candidate) => candidate.id === sectionId);
         return (section && section.title) || sectionId;
       }
 
@@ -2434,208 +2360,68 @@
         });
       }
 
-      function toggleOptionModalGroups({ showSelect, showInput }) {
-        if (elements.optionModalSelectGroup) {
-          elements.optionModalSelectGroup.classList.toggle('d-none', !showSelect);
-        }
-        if (elements.optionModalInputGroup) {
-          elements.optionModalInputGroup.classList.toggle('d-none', !showInput);
-        }
-      }
-
-      function setOptionModalNotice(message, tone) {
-        if (!elements.optionModalNotice) {
-          return;
-        }
-        const notice = elements.optionModalNotice;
-        notice.classList.add('d-none');
-        notice.classList.remove('alert-warning', 'alert-info', 'alert-danger', 'alert-success', 'alert-primary');
-        if (!message) {
-          notice.textContent = '';
-          return;
-        }
-        let variantClass = 'alert-info';
-        if (tone === 'warning') {
-          variantClass = 'alert-warning';
-        } else if (tone === 'danger') {
-          variantClass = 'alert-danger';
-        } else if (tone === 'success') {
-          variantClass = 'alert-success';
-        } else if (tone === 'primary') {
-          variantClass = 'alert-primary';
-        }
-        notice.textContent = message;
-        notice.classList.add(variantClass);
-        notice.classList.remove('d-none');
-      }
-
-      function setOptionModalConfirmAppearance(text, variant) {
-        if (!elements.optionModalConfirm) {
-          return;
-        }
-        const button = elements.optionModalConfirm;
-        button.textContent = text || 'Guardar';
-        button.classList.remove('btn-danger', 'btn-primary', 'btn-success');
-        let className = 'btn-primary';
-        if (variant === 'danger') {
-          className = 'btn-danger';
-        } else if (variant === 'success') {
-          className = 'btn-success';
-        }
-        button.classList.add(className);
-      }
-
       function resetOptionModalState() {
-        state.optionModalState = {
-          mode: '',
+        state.optionRemoval = {
           alias: '',
-          fieldLabel: '',
           options: [],
           previousValue: '',
-          selectElement: null,
         };
         if (elements.optionModalSelect) {
           elements.optionModalSelect.value = '';
         }
-        if (elements.optionModalInput) {
-          elements.optionModalInput.value = '';
-        }
-        toggleOptionModalGroups({ showSelect: false, showInput: false });
-        setOptionModalNotice('', 'info');
-        setOptionModalConfirmAppearance('Guardar', 'primary');
       }
 
-      function openOptionRemovalModal(alias, field, options, previousValue, selectElement) {
+      function openOptionRemovalModal(alias, field, options, previousValue) {
         if (!state.optionModalInstance || !elements.optionModalTitle) {
           return;
         }
-        const label = field && field.label ? field.label : alias;
-        state.optionModalState = {
-          mode: 'remove',
+        state.optionRemoval = {
           alias,
-          fieldLabel: label,
           options,
-          previousValue: previousValue || '',
-          selectElement: selectElement || null,
+          previousValue,
         };
-        elements.optionModalTitle.textContent = `Eliminar valor — ${label}`;
-        if (elements.optionModalSelectGroup) {
-          const labelElement = elements.optionModalSelectGroup.querySelector('label');
-          if (labelElement) {
-            labelElement.textContent = `Selecciona el valor a eliminar`;
-          }
-        }
+        const title = field && field.label ? `Eliminar valor — ${field.label}` : 'Eliminar valor';
+        elements.optionModalTitle.textContent = title;
         populateOptionModalSelect(options);
-        toggleOptionModalGroups({ showSelect: true, showInput: false });
-        setOptionModalConfirmAppearance('Eliminar valor', 'danger');
-        setOptionModalNotice(
-          `Se eliminará el valor seleccionado de "${label}" en todas las filas de la hoja "${SHEET_NAME}".`,
-          'warning'
-        );
-        state.optionModalInstance.show();
-      }
-
-      function openOptionAddModal(selectElement, alias, field, previousValue) {
-        if (!state.optionModalInstance || !elements.optionModalTitle) {
-          return;
-        }
-        const label = field && field.label ? field.label : alias;
-        state.optionModalState = {
-          mode: 'add',
-          alias,
-          fieldLabel: label,
-          options: [],
-          previousValue: previousValue || '',
-          selectElement: selectElement || null,
-        };
-        elements.optionModalTitle.textContent = `Agregar valor — ${label}`;
-        if (elements.optionModalInputGroup) {
-          const labelElement = elements.optionModalInputGroup.querySelector('label');
-          if (labelElement) {
-            labelElement.textContent = `Nuevo valor para "${label}"`;
-          }
-        }
-        if (elements.optionModalInput) {
-          elements.optionModalInput.value = '';
-          elements.optionModalInput.placeholder = `Escribe un valor para "${label}"`;
-        }
-        toggleOptionModalGroups({ showSelect: false, showInput: true });
-        setOptionModalConfirmAppearance('Agregar valor', 'primary');
-        setOptionModalNotice(
-          `El nuevo valor quedará disponible para "${label}" cuando guardes los cambios.`,
-          'info'
-        );
         state.optionModalInstance.show();
       }
 
       function handleOptionModalConfirm() {
-        const modalState = state.optionModalState;
-        if (!modalState || !modalState.alias || !modalState.mode) {
+        if (!state.optionRemoval.alias) {
           state.optionModalInstance && state.optionModalInstance.hide();
           return;
         }
-
-        if (modalState.mode === 'remove') {
-          if (!elements.optionModalSelect) {
-            return;
-          }
-          const value = elements.optionModalSelect.value;
-          if (!value) {
-            showAlert('warning', 'Selecciona un valor para eliminar.');
-            return;
-          }
-          const match = modalState.options.find((option) => option.value === value);
-          if (!match) {
-            state.optionModalInstance && state.optionModalInstance.hide();
-            return;
-          }
-          state.optionModalInstance.hide();
-          setLoading(true, 'Eliminando valor de la lista…');
-          google.script.run
-            .withSuccessHandler((result) => {
-              setLoading(false);
-              setStatus(
-                result && result.removed
-                  ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
-                  : `No se encontraron coincidencias para "${match.label}".`,
-                result && result.removed ? 'success' : 'warning'
-              );
-              loadContext();
-            })
-            .withFailureHandler((error) => {
-              setLoading(false);
-              showError(error);
-            })
-            .removeDropdownValue({ alias: modalState.alias, value: match.value });
+        if (!elements.optionModalSelect) {
           return;
         }
-
-        if (modalState.mode === 'add') {
-          const inputValue = elements.optionModalInput ? elements.optionModalInput.value : '';
-          const trimmed = inputValue ? inputValue.trim() : '';
-          if (!trimmed) {
-            showAlert('warning', 'Ingresa un valor para agregar a la lista.');
-            return;
-          }
-          const alias = modalState.alias;
-          const field = FIELD_LOOKUP[alias];
-          if (field) {
-            addCustomOption(alias, trimmed);
-          }
-          setFieldValue(alias, trimmed);
-          if (field) {
-            renderSelectField(field);
-          }
-          if (modalState.selectElement) {
-            modalState.selectElement.value = trimmed;
-            if (modalState.selectElement.dataset.allowCustom === 'true') {
-              modalState.selectElement.dataset.previousValue = trimmed;
-            }
-          }
-          maybeApplyContactAutoFill(alias, trimmed);
-          state.optionModalInstance.hide();
-          setStatus(`Se agregó "${trimmed}" en ${modalState.fieldLabel || alias}.`, 'info');
+        const value = elements.optionModalSelect.value;
+        if (!value) {
+          showAlert('warning', 'Selecciona un valor para eliminar.');
+          return;
         }
+        const match = state.optionRemoval.options.find((option) => option.value === value);
+        if (!match) {
+          state.optionModalInstance && state.optionModalInstance.hide();
+          return;
+        }
+        state.optionModalInstance.hide();
+        setLoading(true, 'Eliminando valor de la lista…');
+        google.script.run
+          .withSuccessHandler((result) => {
+            setLoading(false);
+            setStatus(
+              result && result.removed
+                ? `Se eliminó "${match.label}" de ${result.removed} fila(s).`
+                : `No se encontraron coincidencias para "${match.label}".`,
+              result && result.removed ? 'success' : 'warning'
+            );
+            loadContext();
+          })
+          .withFailureHandler((error) => {
+            setLoading(false);
+            showError(error);
+          })
+          .removeDropdownValue({ alias: state.optionRemoval.alias, value: match.value });
       }
 
       function showFormCards(visible) {
@@ -2646,7 +2432,7 @@
       }
 
       function isDirty() {
-        return FIELD_SECTIONS_RESOLVED.some((section) =>
+        return FIELD_SECTIONS.some((section) =>
           section.fields.some((field) => !valuesAreEqual(state.values[field.alias], state.baseline[field.alias]))
         );
       }
@@ -2678,7 +2464,7 @@
 
       function buildUpdatesPayload() {
         const updates = {};
-        FIELD_SECTIONS_RESOLVED.forEach((section) => {
+        FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
             const alias = field.alias;
             const value = state.values[alias];
@@ -2734,7 +2520,7 @@
       }
 
       function resetFormToBaseline() {
-        FIELD_SECTIONS_RESOLVED.forEach((section) => {
+        FIELD_SECTIONS.forEach((section) => {
           section.fields.forEach((field) => {
             const alias = field.alias;
             const baselineValue = state.baseline[alias];
@@ -2804,8 +2590,6 @@
           elements.statusMessage.classList.add('text-danger');
         } else if (tone === 'warning') {
           elements.statusMessage.classList.add('text-warning');
-        } else if (tone === 'info') {
-          elements.statusMessage.classList.add('text-primary');
         } else {
           elements.statusMessage.classList.add('text-muted');
         }
