@@ -1,0 +1,14 @@
+﻿{
+  "scriptId": "1sXp8oLSyyArMpSGUrCmVXDLZ5l3mRUtdIQ9fi2VZyLC5tv1H3XnmgCF_",
+  "rootDir": "src",
+  "filePushOrder": [
+    "SidebarMain.gs",
+    "SidebarDocs.gs",
+    "SidebarPermissions.gs",
+    "SupabaseSync.gs",
+    "Sidebar.html",
+    "sidebar-ui.js.html",
+    "sidebar-admin.js.html",
+    "sidebar.css.html"
+  ]
+}
