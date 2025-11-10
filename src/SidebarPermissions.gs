@@ -520,6 +520,35 @@ function assertUserCanManageAccess() {
   }
 }
 
+function assertUserCanEditInvitations() {
+  const permissions = getCurrentUserPermissions();
+  if (!permissions.canEdit) {
+    throw new Error(
+      'No tienes permisos para editar invitaciones. Verifica tu rol en la hoja "' + PERMISSIONS_SHEET_NAME + '".'
+    );
+  }
+}
+
+function assertUserCanSyncInvitations() {
+  const permissions = getCurrentUserPermissions();
+  if (!permissions.canSync) {
+    throw new Error(
+      'No tienes permisos para sincronizar con Supabase. Revisa la configuración en "' + PERMISSIONS_SHEET_NAME + '".'
+    );
+  }
+}
+
+function assertUserCanDeleteInvitations() {
+  const permissions = getCurrentUserPermissions();
+  if (!permissions.canDelete) {
+    throw new Error(
+      'Solo un administrador habilitado puede eliminar invitaciones desde este panel. Revisa "' +
+        PERMISSIONS_SHEET_NAME +
+        '" para actualizar los permisos.'
+    );
+  }
+}
+
 function upsertPermissionUser(request) {
   assertUserCanManageAccess();
   const rawEmail = (request && request.email) || '';
