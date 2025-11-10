@@ -1,0 +1,42 @@
+<!-- sidebar-admin.js.html -->
+<script>
+/**
+ * Módulo de administración de permisos del Sidebar
+ * Autor: Liber Q. (EKA MINING)
+ */
+
+function openPermisosSidebar() {
+  showLoading("Cargando permisos...");
+  google.script.run.withSuccessHandler(renderPermisos).withFailureHandler(showError).getPermisosInvitaciones();
+}
+
+function renderPermisos(data) {
+  hideLoading();
+  const table = document.getElementById('permTable');
+  table.innerHTML = '';
+
+  data.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${row.correo}</td>
+      <td>${row.rol}</td>
+      <td>${row.estado}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="editPerm('${row.correo}')">Editar</button>
+      </td>`;
+    table.appendChild(tr);
+  });
+}
+
+function editPerm(correo) {
+  const nuevoRol = prompt(`Nuevo rol para ${correo}:`, "EDITOR");
+  if (!nuevoRol) return;
+  showLoading("Actualizando rol...");
+  google.script.run.withSuccessHandler(() => {
+    hideLoading();
+    showAlert(`Rol actualizado para ${correo}`, "info");
+    openPermisosSidebar();
+  }).withFailureHandler(showError).updatePermiso(correo, nuevoRol);
+}
+</script>
