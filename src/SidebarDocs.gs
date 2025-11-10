@@ -150,7 +150,7 @@ function ensureColumnDictionarySheet() {
 
 function buildColumnDictionaryRows() {
   const rows = [];
-  FIELD_SECTIONS.forEach(function (section) {
+  getInvitationFieldSections().forEach(function (section) {
     const sectionTitle = section.title || section.id;
     section.fields.forEach(function (field) {
       const description = COLUMN_DICTIONARY_DESCRIPTIONS[field.alias] || '';
