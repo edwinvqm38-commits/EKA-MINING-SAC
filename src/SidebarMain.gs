@@ -4,6 +4,22 @@
  * Autor: Liber Q. (EKA MINING)
  */
 
+// Permite configurar de forma centralizada la hoja principal utilizada por el
+// panel. Si otra parte del proyecto ya definió `SHEET_NAME`, la respetamos.
+var SHEET_NAME =
+  typeof this.SHEET_NAME === 'string' && this.SHEET_NAME
+    ? this.SHEET_NAME
+    : 'Invitaciones';
+this.SHEET_NAME = SHEET_NAME;
+
+// Estructura base de secciones y campos que el panel renderiza. Si en otra
+// parte del código ya se definió `FIELD_SECTIONS` (por ejemplo, desde un
+// archivo de configuración más detallado), la reutilizamos. En caso contrario,
+// inicializamos con un arreglo vacío para evitar referencias no definidas en
+// las plantillas HTML.
+var FIELD_SECTIONS = Array.isArray(this.FIELD_SECTIONS) ? this.FIELD_SECTIONS : [];
+this.FIELD_SECTIONS = FIELD_SECTIONS;
+
 /* ============================
    📌 Abrir el panel lateral
 ============================ */
@@ -20,11 +36,49 @@ function onOpen() {
  * Muestra el panel lateral principal
  */
 function showSidebar() {
-  const html = HtmlService.createTemplateFromFile('Sidebar.html')
+  const template = HtmlService.createTemplateFromFile('Sidebar.html');
+  const templateData = buildSidebarTemplateData();
+
+  template.sheetName = templateData.sheetName;
+  template.dictionarySheetName = templateData.dictionarySheetName;
+  template.permissionsSheetName = templateData.permissionsSheetName;
+  template.columnPermissionSheetName = templateData.columnPermissionSheetName;
+  template.fieldSectionsJson = JSON.stringify(templateData.fieldSections);
+
+  const html = template
     .evaluate()
     .setTitle('Gestión de Invitaciones')
     .setWidth(480);
   SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function buildSidebarTemplateData() {
+  const ss = SpreadsheetApp.getActive();
+  const configuredSheetName = SHEET_NAME || '';
+  const fallbackSheetName = ss && ss.getActiveSheet() ? ss.getActiveSheet().getName() : '';
+
+  const sheetName = configuredSheetName || fallbackSheetName || 'Hoja activa';
+  const dictionaryName =
+    typeof COLUMN_DICTIONARY_SHEET_NAME === 'string' && COLUMN_DICTIONARY_SHEET_NAME
+      ? COLUMN_DICTIONARY_SHEET_NAME
+      : 'Diccionario Invitaciones';
+  const permissionsName =
+    typeof PERMISSIONS_SHEET_NAME === 'string' && PERMISSIONS_SHEET_NAME
+      ? PERMISSIONS_SHEET_NAME
+      : 'Permisos Invitaciones';
+  const columnPermissionsName =
+    typeof COLUMN_PERMISSION_SHEET_NAME === 'string' && COLUMN_PERMISSION_SHEET_NAME
+      ? COLUMN_PERMISSION_SHEET_NAME
+      : permissionsName;
+  const fieldSections = Array.isArray(FIELD_SECTIONS) ? FIELD_SECTIONS : [];
+
+  return {
+    sheetName: sheetName,
+    dictionarySheetName: dictionaryName,
+    permissionsSheetName: permissionsName,
+    columnPermissionSheetName: columnPermissionsName,
+    fieldSections: fieldSections,
+  };
 }
 
 /* ============================
